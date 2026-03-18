@@ -162,7 +162,7 @@ dialog {
 }
 
 .flash-thread .thread-card {
-  animation: flash-thread 1.5s ease-out forwards;
+  animation: flash-thread 1.5s ease-out;
 }
 
 .diff-empty-cell {
