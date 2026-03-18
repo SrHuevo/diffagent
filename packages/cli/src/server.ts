@@ -22,6 +22,7 @@ import {
   getRecentCommits,
   getFileLineCount,
   resolveBaseRef,
+  resolveDiffArgs,
   resolveRef,
   revertFile,
   revertHunk,
@@ -254,6 +255,23 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
             .digest('hex')
             .slice(0, 12);
           sendJson(res, { fingerprint: hash });
+          return;
+        }
+
+        if (pathname === '/api/diff/ref') {
+          const ref = url.searchParams.get('ref');
+          const resolved = ref ? resolveDiffArgs(ref) : null;
+
+          if (resolved) {
+            if (resolved.type === 'untracked-only') {
+              sendJson(res, { args: null });
+            } else {
+              sendJson(res, { args: resolved.args.join(' ') });
+            }
+          } else {
+            const args = diffArgs.length > 0 ? diffArgs : ['HEAD'];
+            sendJson(res, { args: args.join(' ') });
+          }
           return;
         }
 
