@@ -36,13 +36,17 @@ diffity agent reply <id> --body "<text>"
 
 ## Instructions
 
-### Step 1: Ensure diffity is running (without opening browser)
+### Step 1: Ensure diffity is running for the correct ref (without opening browser)
 
-The review needs a running session to add comments to, but we don't want to open the browser until comments are ready.
+The review needs a running session whose ref matches the requested ref. A ref mismatch causes "file not in current diff" errors when adding comments.
 
-1. Run `diffity list --json` to check if diffity is already running for this repo.
-2. If already running, note the port and continue to Step 2.
-3. If not running, start it in the background **without opening the browser**:
+1. Run `diffity list --json` to get all running instances. Parse the JSON output and find the entry whose `repoRoot` matches the current repo.
+2. If a matching entry exists, compare its `ref` field against the requested ref:
+   - The registry stores `"work"` for working-tree sessions and the user-provided ref string (e.g. `"main"`, `"HEAD~3"`) for named refs.
+   - If refs **match** → reuse the session, note the port, and continue to Step 2.
+   - If refs **don't match** → restart: run `diffity <ref> --no-open --new` (or `diffity --no-open --new` if no ref). The `--new` flag kills the old session and starts a fresh one. Use Bash tool with `run_in_background: true`. Wait 2 seconds, then verify with `diffity list --json` and note the port.
+   - If **no ref was requested** and the running session's ref is not `"work"` → restart with `diffity --no-open --new` (the running session is for a named ref, but we need working-tree).
+3. If **no session is running** for this repo, start one in the background:
    - Command: `diffity <ref> --no-open` (or `diffity --no-open` if no ref)
    - Use Bash tool with `run_in_background: true`
    - Wait 2 seconds, then verify with `diffity list --json` and note the port.
@@ -82,26 +86,23 @@ The review needs a running session to add comments to, but we don't want to open
    - Use `--side old` for comments on removed code
    - Use `--end-line` when the issue spans multiple lines
    - Be specific and actionable — lead with the point, skip filler
-3. After leaving all inline comments, write a general comment summarizing the diff. **Do not use severity prefixes in the general comment** — prefixes are only for inline findings. The general comment should:
-   - **Lead with the verdict** (e.g. "LGTM", "Needs changes before merging", "Looks good with minor issues")
-   - Use separate paragraphs or bullets when covering multiple points — no walls of text
-   - Mention cross-cutting concerns that don't belong on any single line (architecture, naming consistency, missing tests, etc.)
-   - Include a count of findings by severity if there are any (e.g. "1 must-fix, 2 suggestions")
-   - Be direct and concise — no compliments, no filler, no narrating what the code does
+3. After leaving all inline comments, decide whether a general comment is needed:
+   - **Skip the general comment** if the inline comments already cover everything — a single finding doesn't need a summary restating the same thing.
+   - **Leave a general comment** when there are cross-cutting concerns that don't belong on any single line (architecture, naming consistency, missing tests), when there are 3+ findings worth summarizing, or when the diff is clean and has no inline findings (e.g. "LGTM — clean diff, no issues found").
+   - **Do not use severity prefixes in the general comment** — prefixes are only for inline findings.
+   - Lead with the verdict, be direct and concise — no compliments, no filler, no narrating what the code does.
    ```
    diffity agent general-comment --body "<overall review summary>"
    ```
-   If there are no inline findings, still leave a general comment with your assessment (e.g. "LGTM — clean diff, no issues found").
 
 ### Step 4: Open the browser
 
-1. Run `diffity agent list` to confirm all comments were created.
-2. Open the browser now that comments are ready:
+1. Open the browser now that comments are ready:
    ```
    diffity open <ref>
    ```
    Pass the ref argument if one was provided (e.g. `diffity open HEAD~3`). Omit it to open the default view.
-3. Tell the user the review is ready and they can check the browser. Example:
+2. Tell the user the review is ready and they can check the browser. Example:
 
    > Review complete — check your browser.
    >
