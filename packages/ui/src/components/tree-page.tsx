@@ -7,9 +7,11 @@ import { useReviewThreads } from '../hooks/use-review-threads';
 import { useCommentActions } from '../hooks/use-comment-actions';
 import { isThreadResolved, GENERAL_THREAD_FILE_PATH } from '../types/comment';
 import type { CommentThread } from '../types/comment';
+import type { CommentAuthor } from '../types/comment';
 import { TreeSidebar } from './tree-sidebar';
 import { FolderViewer } from './folder-viewer';
 import { FileViewer } from './file-viewer';
+import { PathComments } from './path-comments';
 import { CommentToolbarActions } from './comment-toolbar-actions';
 import { PageLoader } from './skeleton';
 import { GitBranchIcon } from './icons/git-branch-icon';
@@ -52,10 +54,15 @@ function formatTreeThreadsForCopy(threads: CommentThread[]): string {
   const parts: string[] = [];
 
   for (const thread of unresolvedThreads) {
-    const lineRange = thread.startLine === thread.endLine
-      ? `${thread.startLine}`
-      : `${thread.startLine}-${thread.endLine}`;
-    parts.push(`## ${thread.filePath}:${lineRange}`);
+    if (thread.filePath.startsWith('__path__:')) {
+      const pathLabel = thread.filePath.slice('__path__:'.length);
+      parts.push(`## Comment on ${pathLabel === '__root__' ? 'root' : pathLabel}`);
+    } else {
+      const lineRange = thread.startLine === thread.endLine
+        ? `${thread.startLine}`
+        : `${thread.startLine}-${thread.endLine}`;
+      parts.push(`## ${thread.filePath}:${lineRange}`);
+    }
 
     if (thread.anchorContent) {
       parts.push('```');
@@ -227,7 +234,9 @@ export function TreePage(props: TreePageProps) {
     return <PageLoader />;
   }
 
+  const pathKey = nav.path || '__root__';
   const fileThreads = threads.filter(t => t.filePath === nav.path);
+  const pathThreads = threads.filter(t => t.filePath === `__path__:${pathKey}` );
   const entries = entriesData?.entries ?? [];
 
   return (
@@ -301,6 +310,13 @@ export function TreePage(props: TreePageProps) {
               </span>
             ))}
           </nav>
+
+          <PathComments
+            pathKey={pathKey}
+            threads={pathThreads}
+            commentActions={commentActions}
+            label={nav.path ? nav.path.split('/').pop()! : info?.name ?? 'root'}
+          />
 
           {isFileMode ? (
             fileContent ? (

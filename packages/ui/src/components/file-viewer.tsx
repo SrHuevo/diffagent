@@ -49,18 +49,36 @@ export function FileViewer(props: FileViewerProps) {
     isLineInSelection,
   } = useLineSelection({ filePath, onSelectionComplete });
 
+  const fileThreads = useMemo(() => {
+    return threads.filter(t => t.filePath === filePath);
+  }, [threads, filePath]);
+
   const threadsByLine = useMemo(() => {
     const map = new Map<number, CommentThreadType[]>();
-    for (const thread of threads) {
-      if (thread.filePath !== filePath) {
-        continue;
-      }
+    for (const thread of fileThreads) {
       const existing = map.get(thread.endLine) ?? [];
       existing.push(thread);
       map.set(thread.endLine, existing);
     }
     return map;
-  }, [threads, filePath]);
+  }, [fileThreads]);
+
+  const isLineSelected = useCallback((lineNum: number) => {
+    if (isLineInSelection(lineNum, 'new')) {
+      return true;
+    }
+    if (pendingSelection && pendingSelection.filePath === filePath && pendingSelection.side === 'new') {
+      if (lineNum >= pendingSelection.startLine && lineNum <= pendingSelection.endLine) {
+        return true;
+      }
+    }
+    for (const thread of fileThreads) {
+      if (thread.status === 'open' && lineNum >= thread.startLine && lineNum <= thread.endLine) {
+        return true;
+      }
+    }
+    return false;
+  }, [isLineInSelection, pendingSelection, filePath, fileThreads]);
 
   const handleAddThread = useCallback((body: string) => {
     if (!pendingSelection || !sessionId) {
@@ -101,11 +119,7 @@ export function FileViewer(props: FileViewerProps) {
   for (let i = 0; i < content.length; i++) {
     const lineNum = i + 1;
     const lineTokens = tokens?.[i]?.tokens;
-    const inDragSelection = isLineInSelection(lineNum, 'new');
-    const isPendingLine = pendingSelection &&
-      lineNum >= pendingSelection.startLine &&
-      lineNum <= pendingSelection.endLine;
-    const isSelected = inDragSelection || !!isPendingLine;
+    const selected = isLineSelected(lineNum);
 
     rows.push(
       <tr
@@ -114,17 +128,16 @@ export function FileViewer(props: FileViewerProps) {
       >
         <CommentLineNumber
           lineNumber={lineNum}
-          isSelected={isSelected}
+          isSelected={selected}
           onMouseDown={() => handleLineMouseDown(lineNum, 'new')}
           onMouseEnter={() => handleLineMouseEnter(lineNum, 'new')}
           onCommentClick={() => handleCommentClick(lineNum)}
           showCommentButton={true}
-          forceShowButton={!!isPendingLine}
         />
         <td
           className={cn(
             'px-4 py-0 font-mono text-[13px] leading-6 whitespace-pre',
-            isSelected && 'bg-diff-comment-bg',
+            selected && 'bg-diff-comment-bg',
           )}
         >
           {lineTokens ? (
