@@ -336,14 +336,13 @@ export function TreePage(props: TreePageProps) {
                 )}
               </span>
             ))}
+            <PathComments
+              pathKey={pathKey}
+              threads={pathThreads}
+              commentActions={commentActions}
+              label={nav.path ? nav.path.split('/').pop()! : info?.name ?? 'root'}
+            />
           </nav>
-
-          <PathComments
-            pathKey={pathKey}
-            threads={pathThreads}
-            commentActions={commentActions}
-            label={nav.path ? nav.path.split('/').pop()! : info?.name ?? 'root'}
-          />
 
           {isFileMode ? (
             fileContent ? (
