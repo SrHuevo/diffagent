@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { CommentThread as CommentThreadType, CommentAuthor } from '../types/comment';
 import { isThreadResolved } from '../types/comment';
 import type { CommentActions } from '../hooks/use-comment-actions';
@@ -19,59 +19,84 @@ interface PathCommentsProps {
 
 export function PathComments(props: PathCommentsProps) {
   const { pathKey, threads, commentActions, label } = props;
+  const [open, setOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setShowForm(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   const handleSubmit = (body: string) => {
     commentActions.addThread(`__path__:${pathKey}`, 'new', 0, 0, body, DEFAULT_AUTHOR);
     setShowForm(false);
   };
 
-  if (threads.length === 0 && !showForm) {
-    return (
-      <div className="mb-3">
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-accent transition-colors cursor-pointer"
-          title={`Add a comment on ${label}`}
-        >
-          <CommentIcon className="w-3.5 h-3.5" />
-          Comment on {label}
-        </button>
-      </div>
-    );
-  }
+  const handleOpen = () => {
+    setOpen(true);
+    if (threads.length === 0) {
+      setShowForm(true);
+    }
+  };
 
   return (
-    <div className="mb-4 rounded-lg bg-accent/5 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 text-sm">
-        <CommentIcon className="w-3.5 h-3.5 text-text-muted" />
-        <span className="text-text-secondary text-xs">Comments on <span className="font-medium">{label}</span></span>
+    <div className="relative inline-flex" ref={popoverRef}>
+      <button
+        onClick={handleOpen}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-text-muted hover:text-accent hover:bg-hover transition-colors cursor-pointer"
+        title={`Comment on ${label}`}
+      >
+        <CommentIcon className="w-3.5 h-3.5" />
         {threads.length > 0 && (
-          <span className="text-xs font-medium bg-accent/15 text-accent px-1.5 py-0.5 rounded-full">{threads.length}</span>
+          <span className="text-[10px] font-semibold text-accent leading-none">{threads.length}</span>
         )}
-        <div className="flex-1" />
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
-          >
-            Add comment
-          </button>
-        )}
-      </div>
-      <div className="bg-bg rounded-md mx-1.5 mb-1.5">
-        {showForm && (
-          <div className="p-3">
-            <CommentForm
-              onSubmit={handleSubmit}
-              onCancel={() => setShowForm(false)}
-              placeholder={`Comment on ${label}...`}
-              submitLabel="Comment"
-            />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-96 max-h-[420px] overflow-y-auto bg-bg-secondary rounded-lg shadow-lg ring-1 ring-border z-50">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+            <CommentIcon className="w-3.5 h-3.5 text-text-muted" />
+            <span className="text-xs text-text-secondary">
+              Comments on <span className="font-medium">{label}</span>
+            </span>
+            {threads.length > 0 && (
+              <span className="text-[10px] font-semibold bg-accent/15 text-accent px-1.5 py-0.5 rounded-full">{threads.length}</span>
+            )}
+            <div className="flex-1" />
+            {!showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="text-[11px] text-accent hover:text-accent-hover transition-colors cursor-pointer"
+              >
+                Add
+              </button>
+            )}
           </div>
-        )}
-        {threads.length > 0 && (
-          <div className="p-3 space-y-3">
+
+          <div className="p-2 space-y-2">
+            {showForm && (
+              <CommentForm
+                onSubmit={handleSubmit}
+                onCancel={() => {
+                  setShowForm(false);
+                  if (threads.length === 0) {
+                    setOpen(false);
+                  }
+                }}
+                placeholder={`Comment on ${label}...`}
+                submitLabel="Comment"
+              />
+            )}
             {threads.map(thread => (
               <PathThreadCard
                 key={thread.id}
@@ -84,9 +109,12 @@ export function PathComments(props: PathCommentsProps) {
                 onDeleteThread={() => commentActions.deleteThread(thread.id)}
               />
             ))}
+            {threads.length === 0 && !showForm && (
+              <div className="py-3 text-center text-xs text-text-muted">No comments yet</div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -107,7 +135,7 @@ function PathThreadCard(props: PathThreadCardProps) {
   const resolved = isThreadResolved(thread);
 
   return (
-    <div className="rounded-lg overflow-hidden bg-bg-secondary" data-thread-id={thread.id}>
+    <div className="rounded-lg overflow-hidden bg-bg" data-thread-id={thread.id}>
       <div className="flex items-center justify-between px-3 py-1.5">
         <div className="flex items-center gap-2">
           {resolved && <ThreadBadge variant="resolved" />}
