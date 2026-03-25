@@ -89,6 +89,33 @@ Reads all open comments and makes the requested code changes. Works with both yo
 
 A typical workflow: run `/diffity-review` to get AI feedback, check the comments in the browser, then run `/diffity-resolve` to apply the fixes.
 
+## Browse project files
+
+Run `diffity tree` to open a full file tree browser — no diff required. Browse your repo, read files with syntax highlighting, and leave comments on any file or folder.
+
+```bash
+diffity tree
+```
+
+The tree view supports the same commenting and resolve workflow as the diff viewer. Leave comments on specific lines, files, or folders, then have your agent resolve them.
+
+### `/diffity-tree`
+
+Opens the file tree browser:
+
+```
+/diffity-tree
+```
+
+### `/diffity-resolve-tree`
+
+Reads open comments from the tree browser and makes the requested code changes:
+
+```
+/diffity-resolve-tree                  # resolve all open comments
+/diffity-resolve-tree abc123           # resolve a specific thread by ID
+```
+
 ## GitHub PRs
 
 Pass a GitHub PR URL to view and review pull requests locally:
