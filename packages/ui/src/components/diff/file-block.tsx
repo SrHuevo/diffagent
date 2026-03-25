@@ -27,6 +27,8 @@ import { OrphanedThreads } from '../comments/orphaned-threads';
 import { ThreadBadge } from '../ui/thread-badge';
 import { buildExpansionSyntaxMap, renderExpansionRows } from './render-expansion-rows';
 import { ExpandRow } from './expand-row';
+import { RichDiffViewer } from './rich-diff-viewer';
+import { isRenderableFile } from '../../lib/file-types';
 
 export const LARGE_DIFF_LINE_THRESHOLD = 200;
 
@@ -92,6 +94,8 @@ export function FileBlock(props: FileBlockProps) {
   const { copied: pathCopied, copy: copyPath } = useCopy();
 
   const [confirmRevertChange, setConfirmRevertChange] = useState<{ hunk: DiffHunk; startIndex: number; endIndex: number } | null>(null);
+  const [showRichDiff, setShowRichDiff] = useState(false);
+  const renderable = isRenderableFile(filePath);
 
   const handleRevertChange = useCallback(async (info: { hunk: DiffHunk; startIndex: number; endIndex: number }) => {
     setConfirmRevertChange(null);
@@ -431,6 +435,14 @@ export function FileBlock(props: FileBlockProps) {
               )}
             </span>
           )}
+          {renderable && (
+            <button
+              className="text-[11px] text-text-muted hover:text-accent transition-colors cursor-pointer font-medium"
+              onClick={() => setShowRichDiff(prev => !prev)}
+            >
+              {showRichDiff ? 'Show source' : 'Show rendered'}
+            </button>
+          )}
           <div className="flex items-center gap-1.5">
             <DiffStats additions={file.additions} deletions={file.deletions} />
             <div className="flex gap-px">
@@ -458,7 +470,14 @@ export function FileBlock(props: FileBlockProps) {
       </div>
       {!collapsed && (
         <div>
-          {file.isBinary ? (
+          {showRichDiff && renderable ? (
+            <RichDiffViewer
+              filePath={filePath}
+              oldPath={file.oldPath}
+              status={file.status}
+              baseRef={baseRef}
+            />
+          ) : file.isBinary ? (
             <div className="p-4 text-center text-text-muted italic">Binary file not shown</div>
           ) : file.hunks.length === 0 ? (
             <div className="p-4 text-center text-text-muted italic">

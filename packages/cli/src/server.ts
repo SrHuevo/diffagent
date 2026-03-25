@@ -33,6 +33,7 @@ import {
   getTreeEntries,
   getTreeFingerprint,
   getWorkingTreeFileContent,
+  getWorkingTreeRawFile,
   WORKING_TREE_REFS,
 } from '@diffity/git';
 import {
@@ -60,7 +61,13 @@ const MIME_TYPES: Record<string, string> = {
   '.json': 'application/json',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
   '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf',
 };
 
 interface ServerOptions {
@@ -487,6 +494,22 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
           try {
             const content = getWorkingTreeFileContent(filePath);
             sendJson(res, { path: filePath, content: content.split('\n') });
+          } catch {
+            sendError(res, 404, `File not found: ${filePath}`);
+          }
+          return;
+        }
+
+        if (pathname.startsWith('/api/tree/raw/')) {
+          const filePath = decodeURIComponent(
+            pathname.slice('/api/tree/raw/'.length),
+          );
+          try {
+            const { data } = getWorkingTreeRawFile(filePath);
+            const ext = extname(filePath);
+            const mime = MIME_TYPES[ext] || 'application/octet-stream';
+            res.writeHead(200, { 'Content-Type': mime });
+            res.end(data);
           } catch {
             sendError(res, 404, `File not found: ${filePath}`);
           }

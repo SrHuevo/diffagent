@@ -90,3 +90,11 @@ export function getWorkingTreeFileContent(filePath: string): string {
   }).trim();
   return readFileSync(join(root, filePath), 'utf-8');
 }
+
+export function getWorkingTreeRawFile(filePath: string): { data: Buffer; fullPath: string } {
+  const root = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+    encoding: 'utf-8',
+  }).trim();
+  const fullPath = join(root, filePath);
+  return { data: readFileSync(fullPath), fullPath };
+}

@@ -11,6 +11,8 @@ import type { CommentAuthor } from '../comments/types';
 import { TreeSidebar } from './tree-sidebar';
 import { FolderViewer } from './folder-viewer';
 import { FileViewer } from './file-viewer';
+import { MarkdownPreview } from './markdown-preview';
+import { SvgPreview } from './svg-preview';
 import { PathComments } from '../comments/path-comments';
 import { CommentToolbarActions } from '../comments/comment-toolbar-actions';
 import { PageLoader } from '../layout/skeleton';
@@ -18,6 +20,9 @@ import { OptionsMenu } from '../layout/options-menu';
 import { GitBranchIcon } from '../icons/git-branch-icon';
 import { StaleDiffBanner } from '../layout/stale-diff-banner';
 import { useTreeStaleness } from '../../hooks/use-tree-staleness';
+import { isRenderableFile, isMarkdownFile } from '../../lib/file-types';
+import { CodeIcon } from '../icons/code-icon';
+import { FileIcon } from '../icons/file-icon';
 
 interface TreePageProps {
   initialTheme?: 'light' | 'dark' | null;
@@ -96,6 +101,7 @@ export function TreePage(props: TreePageProps) {
 
   const [nav, setNav] = useState(getPathFromUrl);
   const [focusedThreadId, setFocusedThreadId] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<'preview' | 'code'>('preview');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const nprogressActive = useRef(false);
@@ -184,6 +190,7 @@ export function TreePage(props: TreePageProps) {
     queryClient.ensureQueryData(treeFileContentOptions(path));
     updateUrl(path, 'file');
     setNav({ path, type: 'file' });
+    setPreviewMode('preview');
   }, [queryClient]);
 
   const handleDirClick = useCallback((path: string) => {
@@ -353,18 +360,44 @@ export function TreePage(props: TreePageProps) {
                 )}
               </span>
             ))}
+            {isFileMode && fileContent && isRenderableFile(nav.path) && (
+              <div className="flex items-center ml-2 border border-border rounded-md overflow-hidden text-xs">
+                <button
+                  className={`flex items-center gap-1 px-2 py-1 transition-colors cursor-pointer ${previewMode === 'code' ? 'bg-bg-tertiary text-text' : 'text-text-muted hover:text-text'}`}
+                  onClick={() => setPreviewMode('code')}
+                >
+                  <CodeIcon className="w-3 h-3" />
+                  Code
+                </button>
+                <button
+                  className={`flex items-center gap-1 px-2 py-1 transition-colors cursor-pointer ${previewMode === 'preview' ? 'bg-bg-tertiary text-text' : 'text-text-muted hover:text-text'}`}
+                  onClick={() => setPreviewMode('preview')}
+                >
+                  <FileIcon className="w-3 h-3" />
+                  Preview
+                </button>
+              </div>
+            )}
           </PathComments>
 
           {isFileMode ? (
             fileContent ? (
-              <FileViewer
-                filePath={nav.path}
-                content={fileContent}
-                theme={theme}
-                threads={fileThreads}
-                commentActions={commentActions}
-                sessionId={sessionId}
-              />
+              isRenderableFile(nav.path) && previewMode === 'preview' ? (
+                isMarkdownFile(nav.path) ? (
+                  <MarkdownPreview content={fileContent} filePath={nav.path} />
+                ) : (
+                  <SvgPreview content={fileContent} />
+                )
+              ) : (
+                <FileViewer
+                  filePath={nav.path}
+                  content={fileContent}
+                  theme={theme}
+                  threads={fileThreads}
+                  commentActions={commentActions}
+                  sessionId={sessionId}
+                />
+              )
             ) : fileFetching ? null : (
               <div className="flex items-center justify-center h-32 text-xs text-text-muted">
                 File not found
