@@ -37,11 +37,12 @@ export function registerTreeCommand(program: Command, version: string) {
             console.log(pc.dim(`  Stopped existing instance (pid ${existing.pid})`));
           }
         } else {
-          const urlParams = new URLSearchParams({ mode: 'tree' });
+          const urlParams = new URLSearchParams();
           if (opts.dark) {
             urlParams.set('theme', 'dark');
           }
-          const url = `http://localhost:${existing.port}/?${urlParams.toString()}`;
+          const qs = urlParams.toString();
+          const url = `http://localhost:${existing.port}/tree${qs ? `?${qs}` : ''}`;
 
           if (!opts.quiet) {
             console.log('');
@@ -73,11 +74,12 @@ export function registerTreeCommand(program: Command, version: string) {
           registryInfo: { repoRoot, repoHash, repoName },
         });
 
-        const urlParams = new URLSearchParams({ mode: 'tree' });
+        const urlParams = new URLSearchParams();
         if (opts.dark) {
           urlParams.set('theme', 'dark');
         }
-        const url = `http://localhost:${actualPort}/?${urlParams.toString()}`;
+        const qs = urlParams.toString();
+        const url = `http://localhost:${actualPort}/tree${qs ? `?${qs}` : ''}`;
 
         if (!opts.quiet) {
           console.log('');

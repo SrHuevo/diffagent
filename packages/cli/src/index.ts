@@ -219,7 +219,7 @@ range syntax (main..feature, main...feature) also work.`)
         if (opts.unified) {
           urlParams.set('view', 'unified');
         }
-        const url = `http://localhost:${existing.port}/?${urlParams.toString()}`;
+        const url = `http://localhost:${existing.port}/diff?${urlParams.toString()}`;
 
         if (!opts.quiet) {
           console.log('');
@@ -257,7 +257,7 @@ range syntax (main..feature, main...feature) also work.`)
       if (opts.unified) {
         urlParams.set('view', 'unified');
       }
-      const url = `http://localhost:${actualPort}/?${urlParams.toString()}`;
+      const url = `http://localhost:${actualPort}/diff?${urlParams.toString()}`;
 
       if (!opts.quiet) {
         console.log('');

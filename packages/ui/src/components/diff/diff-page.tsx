@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useLoaderData } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
+import type { DiffLoaderData } from '../../loaders/diff-loader';
 import { useDiff } from '../../hooks/use-diff';
 import { useInfo } from '../../hooks/use-info';
 import { useTheme } from '../../hooks/use-theme';
@@ -21,14 +23,8 @@ import { fetchGitHubDetails, type GitHubDetails } from '../../lib/api';
 import type { LineSelection } from '../comments/types';
 import { isThreadResolved } from '../comments/types';
 
-interface DiffPageProps {
-  refParam?: string;
-  initialTheme?: 'light' | 'dark' | null;
-  initialViewMode?: 'split' | 'unified' | null;
-}
-
-export function DiffPage(props: DiffPageProps) {
-  const { refParam, initialTheme, initialViewMode } = props;
+export function DiffPage() {
+  const { ref: refParam, theme: initialTheme, view: initialViewMode } = useLoaderData<DiffLoaderData>();
 
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode || 'split');
   const [hideWhitespace, setHideWhitespace] = useState(false);

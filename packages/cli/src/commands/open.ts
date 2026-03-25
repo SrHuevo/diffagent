@@ -31,7 +31,7 @@ export function registerOpenCommand(program: Command) {
         urlParams.set('ref', ref);
       }
       const qs = urlParams.toString();
-      const url = `http://localhost:${existing.port}/${qs ? `?${qs}` : ''}`;
+      const url = `http://localhost:${existing.port}/diff${qs ? `?${qs}` : ''}`;
 
       console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);
       await open(url);
