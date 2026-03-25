@@ -22,6 +22,7 @@ import { registerPruneCommand } from './commands/prune.js';
 import { registerUpdateCommand } from './commands/update.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerTreeCommand } from './commands/tree.js';
+import { registerKillCommand } from './commands/kill.js';
 import { SKILLS_HASH } from './generated/skills-hash.js';
 
 const require = createRequire(import.meta.url);
@@ -48,9 +49,19 @@ Common usage:
   $ diffity                              See all uncommitted changes
   $ diffity main                         What changed since main
   $ diffity HEAD~1                       Review your last commit
-  $ diffity --base main --compare feature   Compare two branches
-  $ diffity v1.0.0 v2.0.0                  Compare two tags
+  $ diffity main..feature                Compare two branches
+  $ diffity --base main --compare feature   Same as above
+  $ diffity v1.0.0 v2.0.0               Compare two tags
   $ diffity https://github.com/owner/repo/pull/123   Review a GitHub PR
+  $ diffity --dark --unified             Dark mode, unified view
+  $ diffity --new                        Force restart existing instance
+
+Other commands:
+  $ diffity tree                         Browse repository files
+  $ diffity tree --dark                  Browse in dark mode
+  $ diffity list                         List running instances
+  $ diffity kill                         Stop all running instances
+  $ diffity prune                        Remove all diffity data
 
 The --base/--compare flags are optional — positional args and
 range syntax (main..feature, main...feature) also work.`)
@@ -154,7 +165,10 @@ range syntax (main..feature, main...feature) also work.`)
         console.log('Examples:');
         console.log(`  ${pc.cyan('diffity')}                              See all uncommitted changes`);
         console.log(`  ${pc.cyan('diffity main')}                         What changed since main`);
+        console.log(`  ${pc.cyan('diffity HEAD~1')}                       Review your last commit`);
+        console.log(`  ${pc.cyan('diffity main..feature')}                Compare two branches`);
         console.log(`  ${pc.cyan('diffity --base main --compare feature')}   Compare two branches`);
+        console.log(`  ${pc.cyan('diffity tree')}                         Browse repository files`);
         console.log('');
         console.log(`Run ${pc.cyan('diffity --help')} for more options.`);
         process.exit(1);
@@ -285,6 +299,7 @@ registerPruneCommand(program);
 registerUpdateCommand(program, pkg.version, SKILLS_HASH);
 registerDoctorCommand(program, pkg.version);
 registerTreeCommand(program, pkg.version);
+registerKillCommand(program);
 registerAgentCommands(program);
 
 program.parse();
