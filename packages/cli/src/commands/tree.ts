@@ -4,7 +4,7 @@ import open from 'open';
 import pc from 'picocolors';
 import { isGitRepo, getRepoRoot, getRepoName } from '@diffity/git';
 import { startServer } from '../server.js';
-import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance } from '../registry.js';
+import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance, checkInstanceHealth } from '../registry.js';
 
 export function registerTreeCommand(program: Command, version: string) {
   program
@@ -14,6 +14,7 @@ export function registerTreeCommand(program: Command, version: string) {
     .option('--no-open', 'Do not open browser automatically')
     .option('--dark', 'Open in dark mode')
     .option('--quiet', 'Minimal terminal output')
+    .option('--new', 'Stop existing instance and start fresh')
     .action(async (opts) => {
       if (!isGitRepo()) {
         console.error(pc.red('Error: Not a git repository'));
@@ -25,30 +26,37 @@ export function registerTreeCommand(program: Command, version: string) {
       const repoName = getRepoName();
 
       const existing = findInstanceForRepo(repoHash);
-      if (existing && existing.version === version) {
-        const urlParams = new URLSearchParams({ mode: 'tree' });
-        if (opts.dark) {
-          urlParams.set('theme', 'dark');
-        }
-        const url = `http://localhost:${existing.port}/?${urlParams.toString()}`;
-
-        if (!opts.quiet) {
-          console.log('');
-          console.log(pc.bold('  diffity tree'));
-          console.log(`  ${pc.dim('Reusing running instance')}`);
-          console.log('');
-          console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);
-          console.log('');
-        }
-
-        if (opts.open !== false) {
-          await open(url);
-        }
-        return;
-      }
-
       if (existing) {
-        killInstance(existing);
+        const isStale = existing.version !== version;
+        const isHealthy = !opts.new && !isStale && await checkInstanceHealth(existing.port);
+        if (!isHealthy) {
+          killInstance(existing);
+          if (!opts.quiet && !isStale && !opts.new) {
+            console.log(pc.dim(`  Removed stale instance (pid ${existing.pid})`));
+          } else if (!opts.quiet && opts.new) {
+            console.log(pc.dim(`  Stopped existing instance (pid ${existing.pid})`));
+          }
+        } else {
+          const urlParams = new URLSearchParams({ mode: 'tree' });
+          if (opts.dark) {
+            urlParams.set('theme', 'dark');
+          }
+          const url = `http://localhost:${existing.port}/?${urlParams.toString()}`;
+
+          if (!opts.quiet) {
+            console.log('');
+            console.log(pc.bold('  diffity tree'));
+            console.log(`  ${pc.dim('Reusing running instance')}`);
+            console.log('');
+            console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);
+            console.log('');
+          }
+
+          if (opts.open !== false) {
+            await open(url);
+          }
+          return;
+        }
       }
 
       const explicitPort = !!opts.port;

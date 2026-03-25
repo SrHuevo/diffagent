@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, unlinkSync, existsSync, statSync, mkdirSync } from 'node:fs';
+import { get } from 'node:http';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -139,6 +140,20 @@ export function findInstanceForRepo(repoHash: string): RegistryEntry | null {
     return null;
   }
   return match;
+}
+
+export function checkInstanceHealth(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = get(`http://localhost:${port}/api/info`, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(2000, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
 }
 
 export function killInstance(entry: RegistryEntry): void {

@@ -15,7 +15,7 @@ import {
 } from '@diffity/github';
 import { startServer } from './server.js';
 import { registerAgentCommands } from './agent.js';
-import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance } from './registry.js';
+import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance, checkInstanceHealth } from './registry.js';
 import { registerOpenCommand } from './commands/open.js';
 import { registerListCommand } from './commands/list.js';
 import { registerPruneCommand } from './commands/prune.js';
@@ -189,9 +189,12 @@ range syntax (main..feature, main...feature) also work.`)
     const existing = findInstanceForRepo(repoHash);
     if (existing) {
       const isStale = existing.version !== pkg.version;
-      if (opts.new || isStale) {
+      const isHealthy = !opts.new && !isStale && await checkInstanceHealth(existing.port);
+      if (!isHealthy) {
         killInstance(existing);
-        if (!opts.quiet && !isStale) {
+        if (!opts.quiet && !isStale && !opts.new) {
+          console.log(pc.dim(`  Removed stale instance (pid ${existing.pid})`));
+        } else if (!opts.quiet && opts.new) {
           console.log(pc.dim(`  Stopped existing instance (pid ${existing.pid})`));
         }
       } else {
