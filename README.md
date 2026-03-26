@@ -14,9 +14,9 @@ It works with Claude Code, Cursor, Codex, and any AI coding agent.
 
 | What can you do? | Description |
 |---|---|
-| [See your diffs](#see-your-diffs) | View changes across commits, branches, tags — right in your browser |
-| [AI code review](#ai-code-review) | Let your agent review code and leave comments you can actually act on |
-| [Browse project files](#browse-project-files) | Explore your repo and comment on any file, no diff needed |
+| [See your diffs](#see-your-diffs) | View changes in working area, across commits, branches, tags, etc  |
+| [AI code review](#ai-code-review) | Let your agent review code and leave comments on the diff |
+| [Browse project files](#browse-project-files) | Explore your repo and comment on any file for AI to resolve |
 | [Guided code tours](#guided-code-tours) | Walk through your codebase step by step with highlighted code |
 | [GitHub PRs](#github-prs) | Pull down a PR, review it locally, push comments back to GitHub |
 | [Multiple projects](#multiple-projects) | Run it in multiple repos at once, each gets its own port |
