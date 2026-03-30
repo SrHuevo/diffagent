@@ -47,11 +47,10 @@ diffity agent reply <id> --body "<text>"
    a. **Skip** general comments (filePath `__general__`) — these are summaries, not actionable code changes.
    b. **Skip** threads where the last comment is an agent reply that asks the user a question (e.g. "Could you clarify...?") and the user hasn't responded yet — the agent is waiting for user input. Still process threads where the agent left the original comment (code suggestion, review feedback, etc.) — those are actionable.
    c. **`[nit]` comments** — these are minor suggestions but still actionable. Resolve them like any other comment.
-   d. **`[question]` comments** (from the user) — read the question, examine the relevant code, and reply with an answer:
+   d. **`[question]` comments** (from the user) — read the question, examine the relevant code, and resolve the thread with your answer as the summary:
       ```
-      diffity agent reply <thread-id> --body "Your answer here"
+      diffity agent resolve <thread-id> --summary "Your answer here"
       ```
-      Then resolve the thread with a summary of your answer.
    e. Comments phrased as questions without an explicit `[question]` tag (e.g. "should we add X?" or "can we rename this?") are suggestions — treat them as actionable requests and make the change.
    f. Read the comment body from the JSON output and understand what change is requested. Interpret the intent:
       - If the comment suggests a code change, make the change.

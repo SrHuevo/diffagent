@@ -89,7 +89,7 @@ export function MermaidDiagram(props: { chart: string }) {
 
       <dialog
         ref={dialogRef}
-        className="bg-bg text-text border border-border rounded-xl shadow-lg max-w-[90vw] max-h-[90vh] overflow-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm p-0 m-auto fixed inset-0 h-fit"
+        className="bg-bg text-text border border-border rounded-xl shadow-lg w-[90vw] max-h-[90vh] overflow-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm p-0 m-auto fixed inset-0 h-fit"
         onClick={(e) => {
           if (e.target === dialogRef.current) {
             dialogRef.current?.close();
@@ -105,9 +105,12 @@ export function MermaidDiagram(props: { chart: string }) {
             <XIcon className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-6 flex justify-center">
+        <div className="p-6 flex justify-center [&_svg]:!w-full [&_svg]:h-auto">
           {svgContent && (
-            <div dangerouslySetInnerHTML={{ __html: svgContent }} />
+            <div
+              className="w-full"
+              dangerouslySetInnerHTML={{ __html: svgContent }}
+            />
           )}
         </div>
       </dialog>
