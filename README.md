@@ -18,6 +18,7 @@ It works with Claude Code, Cursor, Codex, and any AI coding agent.
 | [AI code review](#ai-code-review) | Let your agent review code and leave comments on the diff |
 | [Browse project files](#browse-project-files) | Explore your repo and comment on any file for AI to resolve |
 | [Guided code tours](#guided-code-tours) | Walk through your codebase step by step with highlighted code |
+| [Learn from your codebase](#learn-from-your-codebase) | Teach any programming concept using real examples from your code |
 | [GitHub PRs](#github-prs) | Pull down a PR, review it locally, push comments back to GitHub |
 | [Multiple projects](#multiple-projects) | Run it in multiple repos at once, each gets its own port |
 
@@ -147,6 +148,25 @@ Your agent researches the codebase, then builds a tour with highlighted code reg
 Each tour has an intro (step 0) with an architectural overview, followed by numbered steps that highlight specific code regions and explain them in detail. The agent follows the actual execution path, not file order.
 
 Tour steps can include **sub-highlights** — clickable focus links in the narrative that narrow the highlight to a specific sub-range within the step. Useful for walking through large functions section by section.
+
+## Learn from your codebase
+
+Turn your codebase into a classroom. Pick any programming concept — closures, generics, async/await, React hooks — and your agent finds real examples in your code and builds a teaching tour that explains the concept from simple to complex.
+
+### `/diffity-learn`
+
+Your agent searches for real instances of the concept, ranks them by complexity, then builds a progressive tour with explanations and highlighted code:
+
+```
+/diffity-learn closures in JavaScript
+/diffity-learn async/await
+/diffity-learn dependency injection
+/diffity-learn React hooks
+/diffity-learn error handling patterns
+/diffity-learn generics in TypeScript
+```
+
+Each tour starts with a jargon-free explanation of the concept, then walks through 3-8 real examples from your code — starting with the simplest and building up. Every step explains both the concept and why it's used in that specific context.
 
 ## GitHub PRs
 
