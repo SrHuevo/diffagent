@@ -18,7 +18,7 @@ It works with Claude Code, Cursor, Codex, and any AI coding agent.
 | [AI code review](#ai-code-review) | Let your agent review code and leave comments on the diff |
 | [Browse project files](#browse-project-files) | Explore your repo and comment on any file for AI to resolve |
 | [Guided code tours](#guided-code-tours) | Walk through your codebase step by step with highlighted code |
-| [Learn from your codebase](#learn-from-your-codebase) | Teach any programming concept using real examples from your code |
+| [Learn any topic](#learn-any-topic) | Project-driven learning for programming languages, tools, and frameworks |
 | [GitHub PRs](#github-prs) | Pull down a PR, review it locally, push comments back to GitHub |
 | [Multiple projects](#multiple-projects) | Run it in multiple repos at once, each gets its own port |
 
@@ -143,30 +143,42 @@ Your agent researches the codebase, then builds a tour with highlighted code reg
 /diffity-tour how does authentication work?
 /diffity-tour explain the request lifecycle
 /diffity-tour how are comments stored and retrieved?
+/diffity-tour closures
+/diffity-tour async/await patterns
 ```
+
+Works for both features ("how does auth work?") and concepts ("closures", "generics"). For concepts, the agent finds real examples in your codebase and teaches the concept progressively from simple to complex.
 
 Each tour has an intro (step 0) with an architectural overview, followed by numbered steps that highlight specific code regions and explain them in detail. The agent follows the actual execution path, not file order.
 
 Tour steps can include **sub-highlights** — clickable focus links in the narrative that narrow the highlight to a specific sub-range within the step. Useful for walking through large functions section by section.
 
-## Learn from your codebase
+## Learn any topic
 
-Turn your codebase into a classroom. Pick any programming concept — closures, generics, async/await, React hooks — and your agent finds real examples in your code and builds a teaching tour that explains the concept from simple to complex.
+Start a project-driven learning journey for any programming language, tool, or framework. Your agent becomes a tutor — it builds teaching projects that open as guided tours in the browser, gives you challenges to complete, reviews your code with inline feedback, and adapts to your pace.
 
 ### `/diffity-learn`
 
-Your agent searches for real instances of the concept, ranks them by complexity, then builds a progressive tour with explanations and highlighted code:
+Kick off a learning journey. Run it in an empty directory where you want to keep your learning files — the agent creates a `learn-<topic>/` folder with lessons, projects, and progress tracking.
 
-```
-/diffity-learn closures in JavaScript
-/diffity-learn async/await
-/diffity-learn dependency injection
-/diffity-learn React hooks
-/diffity-learn error handling patterns
-/diffity-learn generics in TypeScript
+```bash
+mkdir ~/learning && cd ~/learning
 ```
 
-Each tour starts with a jargon-free explanation of the concept, then walks through 3-8 real examples from your code — starting with the simplest and building up. Every step explains both the concept and why it's used in that specific context.
+Then start learning:
+
+```
+/diffity-learn Rust
+/diffity-learn Go
+/diffity-learn Docker
+/diffity-learn SQL
+/diffity-learn TypeScript
+/diffity-learn Kubernetes
+```
+
+Each lesson follows a loop: your agent builds a small project and opens it as a Diffity tour explaining the concepts, then gives you a challenge to build yourself. When you're done, it reviews your code with inline Diffity comments and decides what to teach next.
+
+Progress is saved to `learn.json` — come back anytime and pick up where you left off. The agent tracks what you've mastered, what you're struggling with, and adjusts the curriculum accordingly.
 
 ## GitHub PRs
 
