@@ -165,11 +165,16 @@ Field details:
 
    Beyond those two, ask 1-2 topic-specific questions that will help you choose the right projects and examples. Use your judgment.
 
-4. **Create the learning directory and learn.json.** Directory name: `learn-<topic>/` in the current working directory (e.g., `learn-rust/`, `learn-docker/`, `learn-sql/`).
+4. **Create the learning directory, initialize git, and write learn.json.** In order:
+   - Create the directory: `mkdir -p learn-<topic>`
+   - Initialize git inside it: `cd learn-<topic> && git init && git commit --allow-empty -m "init"`
+   - Write learn.json to the directory
 
-5. **Start a Diffity tree instance** for the learning directory if one isn't already running. Run `{{binary}} tree --no-open` from the learning directory using Bash with `run_in_background: true`. Wait 2 seconds, then verify with `{{binary}} list --json`.
+   Diffity requires a git repo. The directory MUST exist and have at least one commit before starting Diffity.
 
-6. **Spawn the plan agent** to plan the first 3-5 lessons. Write the result to learn.json's `lessonPlan`, including `projectIdeas` from the plan agent.
+5. **Start a Diffity tree instance** from inside the learning directory. Run `cd <learning-dir> && {{binary}} tree --no-open` using Bash with `run_in_background: true`. Wait 2 seconds, then verify with `{{binary}} list --json`. If it fails, check that the directory exists and has a git repo.
+
+6. **Spawn the plan agent** to plan the first 3-5 lessons. Write the result to learn.json's `lessonPlan`. Sanity check: lesson 1 should be the absolute basics — if it isn't, re-prompt.
 
 7. **Orient the user.** Briefly explain the structure:
 
