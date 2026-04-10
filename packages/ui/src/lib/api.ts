@@ -307,3 +307,40 @@ export async function fetchTreeFileContent(filePath: string): Promise<string[]> 
   );
   return json.content;
 }
+
+// ─── Claude Code API ───
+
+export function claudeStart(): Promise<{ status: string; running: boolean }> {
+  return apiFetch('/api/claude/start', { method: 'POST' });
+}
+
+export function claudeStatus(): Promise<{ running: boolean; ready: boolean }> {
+  return apiFetch('/api/claude/status');
+}
+
+export function claudeSendMessage(message: string): Promise<{ sent: boolean }> {
+  return apiFetch('/api/claude/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+}
+
+export function claudeResolve(
+  sessionId: string,
+  threadIds?: string[],
+): Promise<{ sent: boolean; threadCount: number }> {
+  return apiFetch('/api/claude/resolve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, threadIds }),
+  });
+}
+
+export function claudeStop(): Promise<{ status: string }> {
+  return apiFetch('/api/claude/stop', { method: 'POST' });
+}
+
+export function claudeStream(): EventSource {
+  return new EventSource('/api/claude/stream');
+}

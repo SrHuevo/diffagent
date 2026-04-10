@@ -10,6 +10,7 @@ import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { parseDiff, type ParsedDiff } from '@diffity/parser';
+import { handleClaudeRoutes } from './claude-routes.js';
 import {
   getDiff,
   getDiffStatForRef,
@@ -555,6 +556,10 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
             github: githubRemote,
             editor: editorAvailable,
           });
+          return;
+        }
+
+        if (handleClaudeRoutes(req, res, pathname, cwd)) {
           return;
         }
 

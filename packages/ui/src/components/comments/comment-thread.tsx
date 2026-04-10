@@ -14,6 +14,7 @@ interface CommentThreadProps {
   onEditComment: (commentId: string, body: string) => void;
   onDeleteComment: (threadId: string, commentId: string) => void;
   onDeleteThread: (threadId: string) => void;
+  onResolveWithClaude?: (threadId: string) => void;
   currentAuthor: CommentAuthor;
   colSpan: number;
   viewMode?: 'unified' | 'split';
@@ -43,6 +44,7 @@ export function CommentThread(props: CommentThreadProps) {
     onEditComment,
     onDeleteComment,
     onDeleteThread,
+    onResolveWithClaude,
     currentAuthor,
     colSpan,
     viewMode,
@@ -119,6 +121,7 @@ export function CommentThread(props: CommentThreadProps) {
           setIsCollapsed(true);
         }}
         onUnresolve={() => onUnresolve(thread.id)}
+        onResolveWithClaude={onResolveWithClaude ? () => onResolveWithClaude(thread.id) : undefined}
         onEditComment={(commentId, body) => onEditComment(commentId, body)}
         onDeleteComment={(commentId) => onDeleteComment(thread.id, commentId)}
         onDeleteThread={() => onDeleteThread(thread.id)}

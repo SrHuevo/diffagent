@@ -21,6 +21,8 @@ import { getHunkHeaders, scrollToElement } from '../../lib/dom-utils';
 import { fetchGitHubDetails, type GitHubDetails } from '../../lib/api';
 import type { LineSelection } from '../comments/types';
 import { isThreadResolved } from '../comments/types';
+import { ChatPanel } from '../claude/chat-panel';
+import { useClaude } from '../../hooks/use-claude';
 
 export function DiffPage() {
   const { ref: refParam, theme: initialTheme, view: initialViewMode } = useLoaderData<{
@@ -47,6 +49,8 @@ export function DiffPage() {
 
   const reviewsEnabled = !!info?.capabilities?.reviews;
   const sessionId = info?.sessionId ?? null;
+  const [showChat, setShowChat] = useState(true);
+  const claude = useClaude(sessionId ?? undefined);
   const canRevert = !!info?.capabilities?.revert;
   const { isStale, resetStaleness } = useDiffStaleness(refParam, !!info?.capabilities?.staleness);
   const [githubDetails, setGithubDetails] = useState<GitHubDetails | null>(null);
@@ -382,6 +386,20 @@ export function DiffPage() {
             onPendingSelectionChange={setPendingSelection}
           />
         ) : null}
+        {showChat && (
+          <div className="w-[380px] min-w-[300px] flex-shrink-0">
+            <ChatPanel
+              messages={claude.messages}
+              isConnected={claude.isConnected}
+              isProcessing={claude.isProcessing}
+              onSend={claude.send}
+              onResolveAll={() => claude.resolve()}
+              onStop={claude.stop}
+              onClear={claude.clear}
+              openThreadCount={threads.filter((t: any) => t.status === 'open').length}
+            />
+          </div>
+        )}
       </div>
       {showHelp && <ShortcutModal onClose={() => setShowHelp(false)} />}
     </div>
