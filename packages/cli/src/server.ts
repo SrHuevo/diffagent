@@ -559,7 +559,7 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
           return;
         }
 
-        if (handleClaudeRoutes(req, res, pathname, cwd)) {
+        if (handleClaudeRoutes(req, res, pathname, process.cwd())) {
           return;
         }
 
