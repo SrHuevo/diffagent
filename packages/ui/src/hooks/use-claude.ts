@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { apiUrl } from '../lib/api';
 
 export interface ChatMessage {
   id: string;
@@ -126,7 +127,7 @@ export function useClaude(sessionId: string | undefined) {
       setIsProcessing(true);
 
       try {
-        const response = await fetch('/api/claude/message', {
+        const response = await fetch(apiUrl('/api/claude/message'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: content }),
@@ -171,7 +172,7 @@ export function useClaude(sessionId: string | undefined) {
       setIsProcessing(true);
 
       try {
-        const response = await fetch('/api/claude/resolve', {
+        const response = await fetch(apiUrl('/api/claude/resolve'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, threadIds }),
@@ -211,14 +212,14 @@ export function useClaude(sessionId: string | undefined) {
 
   const stop = useCallback(async () => {
     try {
-      await fetch('/api/claude/stop', { method: 'POST' });
+      await fetch(apiUrl('/api/claude/stop'), { method: 'POST' });
     } catch {}
     setIsProcessing(false);
   }, []);
 
   const clear = useCallback(() => {
     setMessages([]);
-    fetch('/api/claude/reset', { method: 'POST' }).catch(() => {});
+    fetch(apiUrl('/api/claude/reset'), { method: 'POST' }).catch(() => {});
   }, []);
 
   return {

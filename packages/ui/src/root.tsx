@@ -17,7 +17,7 @@ export function Layout(props: { children: React.ReactNode }) {
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>diffity</title>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
         <Meta />
         <Links />
       </head>
@@ -79,7 +79,7 @@ export function ErrorBoundary() {
       error={error}
       actions={[
         { label: "Reload page", primary: true, onClick: () => window.location.reload() },
-        { label: "Go to diff view", onClick: () => { window.location.href = "/diff"; } },
+        { label: "Go to diff view", onClick: () => { window.location.href = "./diff"; } },
       ]}
     />
   );

@@ -1,8 +1,17 @@
 import type { ParsedDiff } from '@diffity/parser';
 import type { CommentThread, CommentAuthor, CommentSide, Comment } from '../components/comments/types';
 
+// Derive base path from Vite so API calls work behind reverse proxies
+// e.g. served at /my-task/diffity/ → basePath = "/my-task/diffity"
+// served at / (default) → basePath = ""
+const basePath = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+export function apiUrl(path: string): string {
+  return path.startsWith('/') ? `${basePath}${path}` : path;
+}
+
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await fetch(apiUrl(url), init);
   if (!res.ok) {
     const json = await res.json().catch(() => null);
     throw new Error(json?.error || `HTTP ${res.status}`);
@@ -11,7 +20,7 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 async function apiVoid(url: string, init?: RequestInit): Promise<void> {
-  const res = await fetch(url, init);
+  const res = await fetch(apiUrl(url), init);
   if (!res.ok) {
     const json = await res.json().catch(() => null);
     throw new Error(json?.error || `HTTP ${res.status}`);
@@ -111,7 +120,7 @@ export function fetchCommits(skip = 0, count = 10, search?: string): Promise<Com
 }
 
 export async function fetchSession(): Promise<{ id: string; ref: string; headHash: string } | null> {
-  const res = await fetch('/api/sessions/current');
+  const res = await fetch(apiUrl('/api/sessions/current'));
   if (!res.ok) {
     return null;
   }
@@ -119,7 +128,7 @@ export async function fetchSession(): Promise<{ id: string; ref: string; headHas
 }
 
 export async function fetchThreads(sessionId: string, status?: string): Promise<CommentThread[]> {
-  const res = await fetch(buildUrl('/api/threads', { session: sessionId, status }));
+  const res = await fetch(apiUrl(buildUrl('/api/threads', { session: sessionId, status })));
   if (!res.ok) {
     return [];
   }
@@ -224,7 +233,7 @@ export interface PrCommentPayload {
 }
 
 export async function fetchGitHubDetails(): Promise<GitHubDetails | null> {
-  const res = await fetch('/api/github/details');
+  const res = await fetch(apiUrl('/api/github/details'));
   if (!res.ok) {
     return null;
   }
@@ -342,5 +351,5 @@ export function claudeStop(): Promise<{ status: string }> {
 }
 
 export function claudeStream(): EventSource {
-  return new EventSource('/api/claude/stream');
+  return new EventSource(apiUrl('/api/claude/stream'));
 }
