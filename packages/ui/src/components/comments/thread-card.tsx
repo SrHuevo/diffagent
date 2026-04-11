@@ -55,20 +55,22 @@ export function ThreadCard(props: ThreadCardProps) {
                 Reopen
               </button>
             ) : (
-              {onResolveWithClaude && (
+              <>
+                {onResolveWithClaude && (
+                  <button
+                    onClick={onResolveWithClaude}
+                    className="text-[11px] text-accent hover:text-accent/80 transition-colors cursor-pointer font-medium"
+                  >
+                    Ask Claude ▶
+                  </button>
+                )}
                 <button
-                  onClick={onResolveWithClaude}
-                  className="text-[11px] text-accent hover:text-accent/80 transition-colors cursor-pointer font-medium"
+                  onClick={onResolve}
+                  className="text-[11px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
                 >
-                  Ask Claude ▶
+                  Resolve
                 </button>
-              )}
-              <button
-                onClick={onResolve}
-                className="text-[11px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
-              >
-                Resolve
-              </button>
+              </>
             )
           )}
           {headerRight}
