@@ -3,100 +3,119 @@ import { EventEmitter } from 'node:events';
 
 export interface ClaudeMessage {
   type: string;
-  content?: string;
-  tool?: string;
-  input?: Record<string, unknown>;
   subtype?: string;
+  content?: string;
+  message?: {
+    content?: Array<{ type: string; text?: string }>;
+    [key: string]: unknown;
+  };
+  result?: string;
+  session_id?: string;
+  tool?: string;
+  name?: string;
+  input?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
 export class ClaudeProcess extends EventEmitter {
-  private process: ChildProcess | null = null;
-  private buffer = '';
-  private _isReady = false;
+  private sessionId: string | null = null;
+  private activeProcess: ChildProcess | null = null;
+  private cwd: string = '';
 
   get isRunning(): boolean {
-    return this.process !== null && !this.process.killed;
+    return this.activeProcess !== null && !this.activeProcess.killed;
   }
 
-  get isReady(): boolean {
-    return this._isReady;
+  setCwd(cwd: string): void {
+    this.cwd = cwd;
   }
 
-  start(cwd: string): void {
-    if (this.isRunning) return;
+  send(message: string): void {
+    if (this.isRunning) {
+      this.emit('error', new Error('Claude is already processing a message'));
+      return;
+    }
 
-    this.process = spawn('claude', [
-      '--input-format', 'stream-json',
+    const args = [
+      '-p', message,
       '--output-format', 'stream-json',
-      '--dangerously-skip-permissions',
       '--verbose',
-    ], {
-      cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      '--dangerously-skip-permissions',
+    ];
+
+    // Continue previous session if we have one
+    if (this.sessionId) {
+      args.push('--resume', this.sessionId);
+    }
+
+    this.activeProcess = spawn('claude', args, {
+      cwd: this.cwd || process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, FORCE_COLOR: '0' },
     });
 
-    this.process.stdout?.on('data', (chunk: Buffer) => {
-      this.buffer += chunk.toString();
-      const lines = this.buffer.split('\n');
-      this.buffer = lines.pop() || '';
-
+    this.activeProcess.stdout?.on('data', (chunk: Buffer) => {
+      const lines = chunk.toString().split('\n').filter((l) => l.trim());
       for (const line of lines) {
-        if (!line.trim()) continue;
         try {
           const msg: ClaudeMessage = JSON.parse(line);
-          this._isReady = true;
           this.emit('message', msg);
+
+          // Capture session ID from init event
+          if (msg.type === 'system' && msg.subtype === 'init' && msg.session_id) {
+            this.sessionId = msg.session_id as string;
+          }
+
+          // Extract text from assistant messages
+          if (msg.type === 'assistant' && msg.message?.content) {
+            for (const block of msg.message.content) {
+              if (block.type === 'text' && block.text) {
+                this.emit('text', block.text);
+              }
+            }
+          }
 
           if (msg.type === 'result') {
             this.emit('result', msg);
           }
         } catch {
-          // Non-JSON output, ignore
+          // Non-JSON line
         }
       }
     });
 
-    this.process.stderr?.on('data', (chunk: Buffer) => {
+    this.activeProcess.stderr?.on('data', (chunk: Buffer) => {
       const text = chunk.toString().trim();
-      if (text) this.emit('stderr', text);
+      if (text && !text.includes('Warning: no stdin')) {
+        this.emit('stderr', text);
+      }
     });
 
-    this.process.on('exit', (code) => {
-      this._isReady = false;
-      this.process = null;
-      this.emit('exit', code);
+    this.activeProcess.on('exit', () => {
+      this.activeProcess = null;
+      this.emit('done');
     });
 
-    this.process.on('error', (err) => {
+    this.activeProcess.on('error', (err) => {
+      this.activeProcess = null;
       this.emit('error', err);
     });
   }
 
-  send(message: string): void {
-    if (!this.process?.stdin?.writable) {
-      throw new Error('Claude process not running');
+  stop(): void {
+    if (this.activeProcess) {
+      this.activeProcess.kill('SIGTERM');
+      this.activeProcess = null;
     }
-
-    const msg = JSON.stringify({
-      type: 'user',
-      content: message,
-    });
-
-    this.process.stdin.write(msg + '\n');
   }
 
-  stop(): void {
-    if (this.process) {
-      this.process.kill('SIGTERM');
-      this.process = null;
-      this._isReady = false;
-    }
+  reset(): void {
+    this.stop();
+    this.sessionId = null;
   }
 }
 
-// Singleton instance
+// Singleton
 let instance: ClaudeProcess | null = null;
 
 export function getClaudeProcess(): ClaudeProcess {

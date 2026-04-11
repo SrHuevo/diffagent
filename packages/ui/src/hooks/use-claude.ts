@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { claudeStart, claudeSendMessage, claudeResolve, claudeStop } from '../lib/api';
+import { useState, useCallback } from 'react';
 
 export interface ChatMessage {
   id: string;
@@ -11,169 +10,223 @@ export interface ChatMessage {
 
 export function useClaude(sessionId: string | undefined) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const currentAssistantRef = useRef<string>('');
-  const currentMsgIdRef = useRef<string>('');
 
-  // Connect to SSE stream
-  useEffect(() => {
-    const es = new EventSource('/api/claude/stream');
-    eventSourceRef.current = es;
+  const handleSSEResponse = useCallback(
+    async (response: Response, onDone?: () => void) => {
+      const reader = response.body?.getReader();
+      if (!reader) return;
 
-    es.addEventListener('status', (e) => {
-      const data = JSON.parse(e.data);
-      setIsConnected(data.running);
-    });
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let assistantId = `assistant-${Date.now()}`;
+      let assistantText = '';
 
-    es.addEventListener('message', (e) => {
-      const msg = JSON.parse(e.data);
+      // Add empty assistant message
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: 'assistant', content: '', timestamp: new Date(), isStreaming: true },
+      ]);
 
-      if (msg.type === 'assistant' && msg.subtype === 'text') {
-        const text = msg.content || '';
-        currentAssistantRef.current += text;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        setMessages((prev) => {
-          const existing = prev.find((m) => m.id === currentMsgIdRef.current);
-          if (existing) {
-            return prev.map((m) =>
-              m.id === currentMsgIdRef.current
-                ? { ...m, content: currentAssistantRef.current, isStreaming: true }
-                : m,
-            );
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          let currentEvent = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (currentEvent === 'text') {
+                  assistantText += data.text;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: assistantText } : m,
+                    ),
+                  );
+                }
+
+                if (currentEvent === 'result') {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: assistantText || data.result || '', isStreaming: false }
+                        : m,
+                    ),
+                  );
+                }
+
+                if (currentEvent === 'error') {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: `error-${Date.now()}`,
+                      role: 'system',
+                      content: `Error: ${data.error}`,
+                      timestamp: new Date(),
+                    },
+                  ]);
+                }
+
+                if (currentEvent === 'resolved') {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: `resolved-${Date.now()}`,
+                      role: 'system',
+                      content: `Resolved ${data.threadIds?.length || 0} comment(s)`,
+                      timestamp: new Date(),
+                    },
+                  ]);
+                }
+
+                if (currentEvent === 'info') {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: `info-${Date.now()}`,
+                      role: 'system',
+                      content: `Resolving ${data.threadCount} comment(s)...`,
+                      timestamp: new Date(),
+                    },
+                  ]);
+                }
+              } catch {}
+            }
           }
-          const id = `assistant-${Date.now()}`;
-          currentMsgIdRef.current = id;
-          return [
-            ...prev,
-            {
-              id,
-              role: 'assistant',
-              content: currentAssistantRef.current,
-              timestamp: new Date(),
-              isStreaming: true,
-            },
-          ];
-        });
+        }
+      } finally {
+        setIsProcessing(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+        );
+        onDone?.();
       }
-
-      if (msg.type === 'tool_use') {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `tool-${Date.now()}`,
-            role: 'system',
-            content: `🔧 ${msg.tool || msg.name || 'Tool'}: ${typeof msg.input === 'object' ? JSON.stringify(msg.input).slice(0, 100) : '...'}`,
-            timestamp: new Date(),
-          },
-        ]);
-      }
-    });
-
-    es.addEventListener('result', () => {
-      setIsProcessing(false);
-      currentAssistantRef.current = '';
-      currentMsgIdRef.current = '';
-
-      // Mark last assistant message as done streaming
-      setMessages((prev) =>
-        prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
-      );
-    });
-
-    es.addEventListener('exit', () => {
-      setIsConnected(false);
-      setIsProcessing(false);
-    });
-
-    es.onerror = () => {
-      setIsConnected(false);
-    };
-
-    return () => {
-      es.close();
-      eventSourceRef.current = null;
-    };
-  }, []);
-
-  const start = useCallback(async () => {
-    await claudeStart();
-    setIsConnected(true);
-  }, []);
+    },
+    [],
+  );
 
   const send = useCallback(
     async (content: string) => {
-      if (!content.trim()) return;
+      if (!content.trim() || isProcessing) return;
 
-      // Add user message
       setMessages((prev) => [
         ...prev,
-        {
-          id: `user-${Date.now()}`,
-          role: 'user',
-          content,
-          timestamp: new Date(),
-        },
+        { id: `user-${Date.now()}`, role: 'user', content, timestamp: new Date() },
       ]);
 
       setIsProcessing(true);
-      currentAssistantRef.current = '';
-      currentMsgIdRef.current = '';
 
-      if (!isConnected) {
-        await start();
+      try {
+        const response = await fetch('/api/claude/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `error-${Date.now()}`,
+              role: 'system',
+              content: `Error: ${err.error}`,
+              timestamp: new Date(),
+            },
+          ]);
+          setIsProcessing(false);
+          return;
+        }
+
+        await handleSSEResponse(response);
+      } catch (err: any) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            content: `Error: ${err.message}`,
+            timestamp: new Date(),
+          },
+        ]);
+        setIsProcessing(false);
       }
-
-      await claudeSendMessage(content);
     },
-    [isConnected, start],
+    [isProcessing, handleSSEResponse],
   );
 
   const resolve = useCallback(
     async (threadIds?: string[]) => {
-      if (!sessionId) return;
+      if (!sessionId || isProcessing) return;
 
       setIsProcessing(true);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `system-${Date.now()}`,
-          role: 'system',
-          content: `🔄 Resolving ${threadIds ? threadIds.length : 'all open'} comments...`,
-          timestamp: new Date(),
-        },
-      ]);
 
-      currentAssistantRef.current = '';
-      currentMsgIdRef.current = '';
+      try {
+        const response = await fetch('/api/claude/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, threadIds }),
+        });
 
-      if (!isConnected) {
-        await start();
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `error-${Date.now()}`,
+              role: 'system',
+              content: `Error: ${err.error}`,
+              timestamp: new Date(),
+            },
+          ]);
+          setIsProcessing(false);
+          return;
+        }
+
+        await handleSSEResponse(response);
+      } catch (err: any) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            content: `Error: ${err.message}`,
+            timestamp: new Date(),
+          },
+        ]);
+        setIsProcessing(false);
       }
-
-      await claudeResolve(sessionId, threadIds);
     },
-    [sessionId, isConnected, start],
+    [sessionId, isProcessing, handleSSEResponse],
   );
 
   const stop = useCallback(async () => {
-    await claudeStop();
-    setIsConnected(false);
+    try {
+      await fetch('/api/claude/stop', { method: 'POST' });
+    } catch {}
     setIsProcessing(false);
   }, []);
 
   const clear = useCallback(() => {
     setMessages([]);
+    fetch('/api/claude/reset', { method: 'POST' }).catch(() => {});
   }, []);
 
   return {
     messages,
-    isConnected,
+    isConnected: true, // Always "connected" since we spawn per-message
     isProcessing,
     send,
     resolve,
-    start,
     stop,
     clear,
   };
