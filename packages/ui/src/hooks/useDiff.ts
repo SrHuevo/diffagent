@@ -1,24 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
-import { apiFetch, apiUrl } from '../api'
+import { apiUrl } from '../api'
+import { parse } from 'diff2html'
 
-interface DiffStats {
-	totalAdditions: number
-	totalDeletions: number
-	filesChanged: number
-}
-
-interface DiffFile {
-	oldPath: string
-	newPath: string
-	status: string
-	additions: number
-	deletions: number
+export interface DiffFile {
+	oldName: string
+	newName: string
+	addedLines: number
+	deletedLines: number
+	isNew: boolean
+	isDeleted: boolean
+	isRename: boolean
 }
 
 export interface DiffData {
 	rawDiff: string
 	files: DiffFile[]
-	stats: DiffStats
+	stats: { filesChanged: number; totalAdditions: number; totalDeletions: number }
 }
 
 export function useDiff() {
@@ -30,12 +27,31 @@ export function useDiff() {
 		setLoading(true)
 		setError(null)
 		try {
-			const [parsed, rawRes] = await Promise.all([
-				apiFetch<{ files: DiffFile[]; stats: DiffStats }>('/api/diff?ref=work'),
-				fetch(apiUrl('/api/diff/raw?ref=work')),
-			])
-			const rawDiff = rawRes.ok ? await rawRes.text() : ''
-			setData({ rawDiff, files: parsed.files, stats: parsed.stats })
+			// Only fetch raw diff — diff2html parses it client-side
+			const res = await fetch(apiUrl('/api/diff/raw?ref=work'))
+			if (!res.ok) throw new Error(`HTTP ${res.status}`)
+			const rawDiff = await res.text()
+
+			const parsed = parse(rawDiff)
+			const stats = {
+				filesChanged: parsed.length,
+				totalAdditions: parsed.reduce((a, f) => a + f.addedLines, 0),
+				totalDeletions: parsed.reduce((a, f) => a + f.deletedLines, 0),
+			}
+
+			setData({
+				rawDiff,
+				files: parsed.map((f) => ({
+					oldName: f.oldName,
+					newName: f.newName,
+					addedLines: f.addedLines,
+					deletedLines: f.deletedLines,
+					isNew: f.oldName === '/dev/null',
+					isDeleted: f.newName === '/dev/null',
+					isRename: f.isRename ?? false,
+				})),
+				stats,
+			})
 		} catch (err: any) {
 			setError(err.message)
 		} finally {

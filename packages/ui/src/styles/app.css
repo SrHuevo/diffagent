@@ -92,6 +92,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* ─── Diff Container ─── */
 .diff-container { padding: 0; }
 .diff-empty { color: var(--text2); text-align: center; padding: 64px 16px; }
+.diff-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px 16px; color: var(--text2); }
+.diff-error { color: var(--red); text-align: center; padding: 32px 16px; }
 
 /* ─── diff2html Dark Theme Override ─── */
 .d2h-wrapper { background: var(--bg); }

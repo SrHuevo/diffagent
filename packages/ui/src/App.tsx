@@ -11,7 +11,7 @@ import { useThreads } from './hooks/useThreads'
 
 export function App() {
 	const { info } = useRepoInfo()
-	const { data: diff, loading, error } = useDiff()
+	const { data: diff, loading: diffLoading, error: diffError } = useDiff()
 	const chat = useChat()
 	const { threads } = useThreads(info?.sessionId)
 
@@ -20,40 +20,22 @@ export function App() {
 	const [selectedFile, setSelectedFile] = useState<string | null>(null)
 
 	const handleLineClick = useCallback((filePath: string, line: number, side: 'old' | 'new') => {
-		// TODO: open comment form for this line
 		console.log('Comment on', filePath, line, side)
 	}, [])
 
 	const openThreads = threads.filter((t) => t.status === 'open').length
 
 	const files = diff?.files.map((f) => ({
-		path: f.newPath || f.oldPath,
-		status: f.status,
-		additions: f.additions,
-		deletions: f.deletions,
+		path: f.newName !== '/dev/null' ? f.newName : f.oldName,
+		status: f.isNew ? 'added' : f.isDeleted ? 'deleted' : 'modified',
+		additions: f.addedLines,
+		deletions: f.deletedLines,
 	})) || []
-
-	if (loading) {
-		return (
-			<div className="loading">
-				<div className="spinner" />
-			</div>
-		)
-	}
-
-	if (error) {
-		return (
-			<div className="error-page">
-				<h1>Error loading diff</h1>
-				<p>{error}</p>
-			</div>
-		)
-	}
 
 	return (
 		<div className="app">
 			<Header
-				repoName={info?.name || ''}
+				repoName={info?.name || 'Loading...'}
 				branch={info?.branch || ''}
 				stats={diff?.stats || null}
 			/>
@@ -67,11 +49,24 @@ export function App() {
 			/>
 
 			<main className="main">
-				<DiffViewer
-					rawDiff={diff?.rawDiff || ''}
-					selectedFile={selectedFile}
-					onLineClick={handleLineClick}
-				/>
+				{diffLoading && (
+					<div className="diff-loading">
+						<div className="spinner" />
+						<p>Loading diff...</p>
+					</div>
+				)}
+				{diffError && (
+					<div className="diff-error">
+						<p>Error: {diffError}</p>
+					</div>
+				)}
+				{diff && (
+					<DiffViewer
+						rawDiff={diff.rawDiff}
+						selectedFile={selectedFile}
+						onLineClick={handleLineClick}
+					/>
+				)}
 			</main>
 
 			<ChatPanel
