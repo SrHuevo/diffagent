@@ -2,17 +2,18 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch, apiPost, apiUrl } from '../api'
 
 export interface ChatMessage {
-	role: 'user' | 'assistant' | 'system'
+	role: 'user' | 'assistant' | 'system' | 'tool'
 	content: string
 	ts: string
 	isStreaming?: boolean
+	toolName?: string
+	toolInput?: string
 }
 
 export function useChat() {
 	const [messages, setMessages] = useState<ChatMessage[]>([])
 	const [isProcessing, setIsProcessing] = useState(false)
 
-	// Load persisted history on mount
 	useEffect(() => {
 		apiFetch<{ messages: ChatMessage[] }>('/api/chat/history')
 			.then(({ messages }) => setMessages(messages))
@@ -23,12 +24,10 @@ export function useChat() {
 		if (!content.trim() || isProcessing) return
 		setIsProcessing(true)
 
-		// Add user message optimistically
 		const userMsg: ChatMessage = { role: 'user', content, ts: new Date().toISOString() }
 		setMessages((prev) => [...prev, userMsg])
 
-		// Add streaming placeholder
-		const streamId = `stream-${Date.now()}`
+		// Streaming assistant placeholder
 		setMessages((prev) => [...prev, { role: 'assistant', content: '', ts: '', isStreaming: true }])
 
 		try {
@@ -47,7 +46,6 @@ export function useChat() {
 				return
 			}
 
-			// Read SSE stream
 			const reader = res.body?.getReader()
 			if (!reader) return
 
@@ -70,12 +68,37 @@ export function useChat() {
 					} else if (line.startsWith('data: ')) {
 						try {
 							const data = JSON.parse(line.slice(6))
+
 							if (currentEvent === 'text') {
 								fullText += data.text
 								setMessages((prev) =>
 									prev.map((m) => m.isStreaming ? { ...m, content: fullText } : m),
 								)
 							}
+
+							if (currentEvent === 'message') {
+								// Tool use events
+								if (data.type === 'assistant' && data.message?.content) {
+									for (const block of data.message.content) {
+										if (block.type === 'tool_use') {
+											const toolMsg: ChatMessage = {
+												role: 'tool',
+												content: '',
+												ts: new Date().toISOString(),
+												toolName: block.name,
+												toolInput: typeof block.input === 'string' ? block.input :
+													block.input?.command || block.input?.file_path || block.input?.pattern ||
+													JSON.stringify(block.input).substring(0, 200),
+											}
+											setMessages((prev) => {
+												const withoutStreaming = prev.filter((m) => !m.isStreaming)
+												return [...withoutStreaming, toolMsg, { role: 'assistant', content: fullText, ts: '', isStreaming: true }]
+											})
+										}
+									}
+								}
+							}
+
 							if (currentEvent === 'result') {
 								fullText = data.result || fullText
 								setMessages((prev) =>
@@ -85,6 +108,7 @@ export function useChat() {
 									),
 								)
 							}
+
 							if (currentEvent === 'error') {
 								setMessages((prev) => prev.filter((m) => !m.isStreaming).concat({
 									role: 'system', content: `Error: ${data.error}`, ts: new Date().toISOString(),
@@ -95,7 +119,6 @@ export function useChat() {
 				}
 			}
 
-			// Finalize if no result event came
 			setMessages((prev) => prev.map((m) => m.isStreaming ? { ...m, isStreaming: false } : m))
 		} catch (err: any) {
 			setMessages((prev) => prev.filter((m) => !m.isStreaming).concat({

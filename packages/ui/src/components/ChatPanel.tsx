@@ -53,15 +53,24 @@ export function ChatPanel({ open, onClose, messages, isProcessing, onSend, onCle
 						<div className="chat-empty">Send a message to Claude Code</div>
 					)}
 					{messages.map((msg, i) => (
-						<div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-							<div className="chat-msg-author">
-								{msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Claude' : 'System'}
+						msg.role === 'tool' ? (
+							<div key={i} className="chat-msg chat-msg-tool">
+								<div className="chat-tool">
+									<span className="chat-tool-name">{msg.toolName}</span>
+									{msg.toolInput && <span className="chat-tool-input">{msg.toolInput}</span>}
+								</div>
 							</div>
-							<div className="chat-msg-body">
-								{msg.content.trim()}
-								{msg.isStreaming && <span className="chat-cursor">▊</span>}
+						) : (
+							<div key={i} className={`chat-msg chat-msg-${msg.role}`}>
+								<div className="chat-msg-author">
+									{msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Claude' : 'System'}
+								</div>
+								<div className="chat-msg-body">
+									{msg.content.trim()}
+									{msg.isStreaming && <span className="chat-cursor">▊</span>}
+								</div>
 							</div>
-						</div>
+						)
 					))}
 					<div ref={messagesEndRef} />
 				</div>

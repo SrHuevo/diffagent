@@ -58,6 +58,8 @@ export function handleChatRoutes(
 					if (msg.type === 'system' && msg.subtype === 'init' && msg.session_id) {
 						setSessionId(msg.session_id as string)
 					}
+					// Forward all events for terminal-like display
+					res.write(`event: message\ndata: ${JSON.stringify(msg)}\n\n`)
 				}
 				const onResult = (msg: ClaudeMessage) => {
 					const result = msg.result || fullText
