@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { DiffHunk } from '@diffity/parser';
+import type { DiffHunk } from '@diffagent/parser';
 import {
   computeGaps,
   createContextLines,

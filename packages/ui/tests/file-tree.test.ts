@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DiffFile } from '@diffity/parser';
+import type { DiffFile } from '@diffagent/parser';
 import { buildFileTree, filterTreeToPaths } from '../src/lib/file-tree';
 
 function makeFile(path: string): DiffFile {

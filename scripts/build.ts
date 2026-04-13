@@ -10,11 +10,11 @@ const root = resolve(__dirname, '..');
 
 const steps = [
   'npm run build:skills',
-  'npm run build -w @diffity/parser',
-  'npm run build -w @diffity/git',
-  'npm run build -w @diffity/github',
-  'npm run build -w @diffity/ui',
-  'npm run build -w diffity',
+  'npm run build -w @diffagent/parser',
+  'npm run build -w @diffagent/git',
+  'npm run build -w @diffagent/github',
+  'npm run build -w @diffagent/ui',
+  'npm run build -w diffagent',
 ];
 
 for (const step of steps) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { DiffFile, DiffHunk, DiffLine } from '@diffity/parser';
+import type { DiffFile, DiffHunk, DiffLine } from '@diffagent/parser';
 import { getAutoCollapsedPaths, getChangeGroups, buildChangeGroupPatch } from '../src/lib/diff-utils';
 
 function makeFile(path: string, status: DiffFile['status'] = 'modified'): DiffFile {
