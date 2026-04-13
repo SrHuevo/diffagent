@@ -66,9 +66,11 @@ export function App() {
 		if (!task) return
 		setSelectedTeacher(teacherName)
 		setActiveTab('teachers')
+		// Clear iframe first to force re-mount (same teacher = same URL = no refresh otherwise)
+		setTeacherIframeUrl(null)
 		// Ensure Vite is running
 		try { await fetch(`${window.location.origin}/api/host/vite/${task}/teachers`, { method: 'POST' }) } catch {}
-		const fakeUrl = `${window.location.origin}/${task}/api/teachers-dashboard/fake?user=${teacherId}`
+		const fakeUrl = `${window.location.origin}/${task}/api/teachers-dashboard/fake?user=${teacherId}&_t=${Date.now()}`
 		setTeacherIframeUrl(fakeUrl)
 		setLoadedTabs((prev) => new Set(prev).add('teachers'))
 	}, [])
