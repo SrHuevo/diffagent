@@ -162,6 +162,18 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
   const githubRemote = detectGitHubRemote();
   const uiDir = join(__dirname, 'ui/client');
 
+  // Cache branch name for host-git calls (avoids slow execSync in Docker)
+  let cachedBranch: string | null = null;
+  function getBranch(): string {
+    if (cachedBranch) return cachedBranch;
+    try {
+      cachedBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd(), timeout: 5000 }).trim();
+    } catch {
+      cachedBranch = 'unknown';
+    }
+    return cachedBranch;
+  }
+
   let editorAvailable: 'vscode' | null = null;
   try {
     execSync('which code', { stdio: 'pipe' });
@@ -328,7 +340,7 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
             const http = require('http') as typeof import('http');
             const hostDiff = await new Promise<string>((resolve, reject) => {
               // Detect task name from git branch
-              const branch = require('child_process').execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd() }).trim();
+              const branch = getBranch();
               const req = http.get(`http://host.docker.internal:3100/api/host/diff/${encodeURIComponent(branch)}`, { timeout: 5000 }, (res) => {
                 if (res.statusCode !== 200) return reject(new Error(`${res.statusCode}`));
                 let data = '';
@@ -396,7 +408,7 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
           // Try fast host-computed info first (avoids slow Docker git)
           try {
             const http = require('http') as typeof import('http');
-            const branch = require('child_process').execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd(), timeout: 2000 }).trim();
+            const branch = getBranch();
             const hostInfo = await new Promise<string>((resolve, reject) => {
               const req = http.get(`http://host.docker.internal:3100/api/host/info/${encodeURIComponent(branch)}`, { timeout: 3000 }, (res) => {
                 if (res.statusCode !== 200) return reject(new Error(`${res.statusCode}`));
