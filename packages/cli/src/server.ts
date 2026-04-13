@@ -20,6 +20,7 @@ import {
   getUntrackedDiff,
   getRepoInfo,
   getFileContent,
+  getCurrentBranch,
   getStagedFiles,
   getUnstagedFiles,
   getRecentCommits,
@@ -162,15 +163,9 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
   const githubRemote = detectGitHubRemote();
   const uiDir = join(__dirname, 'ui/client');
 
-  // Cache branch name for host-git calls (avoids slow execSync in Docker)
-  let cachedBranch: string | null = null;
+  // Cache branch name eagerly (avoids slow execSync in Docker during requests)
+  const cachedBranch = getCurrentBranch();
   function getBranch(): string {
-    if (cachedBranch) return cachedBranch;
-    try {
-      cachedBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd(), timeout: 5000 }).trim();
-    } catch {
-      cachedBranch = 'unknown';
-    }
     return cachedBranch;
   }
 
