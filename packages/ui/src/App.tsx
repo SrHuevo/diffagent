@@ -36,6 +36,7 @@ export function App() {
 	const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null)
 	const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['diff']))
 	const [isPulling, setIsPulling] = useState(false)
+	const [isSyncing, setIsSyncing] = useState(false)
 
 	const filesOpen = activePanel === 'files'
 	const chatOpen = activePanel === 'chat'
@@ -81,6 +82,19 @@ export function App() {
 		setIsPulling(false)
 	}, [isPulling, chat, info])
 
+	const handleSync = useCallback(async () => {
+		if (isSyncing) return
+		setIsSyncing(true)
+		const task = getTaskFromUrl()
+		if (task) {
+			try {
+				await fetch(`${window.location.protocol}//${window.location.host}/api/host/sync-diffagent/${task}`, { method: 'POST' })
+				window.location.reload()
+			} catch {}
+		}
+		setIsSyncing(false)
+	}, [isSyncing])
+
 	return (
 		<div className="app">
 			<Header
@@ -93,6 +107,8 @@ export function App() {
 				selectedTeacher={selectedTeacher}
 				onPull={handlePull}
 				isPulling={isPulling}
+				onSync={handleSync}
+				isSyncing={isSyncing}
 			/>
 
 			<FileTree

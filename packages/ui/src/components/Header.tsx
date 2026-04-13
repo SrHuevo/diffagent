@@ -24,6 +24,8 @@ interface Props {
 	selectedTeacher: string | null
 	onPull: () => void
 	isPulling: boolean
+	onSync: () => void
+	isSyncing: boolean
 }
 
 function getTaskFromUrl(): string | null {
@@ -31,7 +33,7 @@ function getTaskFromUrl(): string | null {
 	return match ? match[1] : null
 }
 
-export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeacherSelect, selectedTeacher, onPull, isPulling }: Props) {
+export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeacherSelect, selectedTeacher, onPull, isPulling, onSync, isSyncing }: Props) {
 	const [teacherOpen, setTeacherOpen] = useState(false)
 	const [teachers, setTeachers] = useState<Teacher[]>([])
 	const [teacherQuery, setTeacherQuery] = useState('')
@@ -117,6 +119,9 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 				<button className="header-pull-btn" onClick={onPull} disabled={isPulling} title="Pull latest from base branch (via Claude)">
 					<GitPullRequest size={12} />
 					<span>{isPulling ? 'Pulling...' : 'Pull'}</span>
+				</button>
+				<button className="header-pull-btn" onClick={onSync} disabled={isSyncing} title="Sync DiffAgent server (git pull + rebuild)">
+					<span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
 				</button>
 				{stats && activeTab === 'diff' && (
 					<div className="header-stats">
