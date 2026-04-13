@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search, LayoutGrid } from 'lucide-react'
+import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search, LayoutGrid, Menu } from 'lucide-react'
 
 export type Tab = 'diff' | 'teachers' | 'students' | 'api'
 
@@ -41,6 +41,9 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 	const [tasks, setTasks] = useState<TaskInfo[]>([])
 	const navRef = useRef<HTMLDivElement>(null)
 
+	const [burgerOpen, setBurgerOpen] = useState(false)
+	const burgerRef = useRef<HTMLDivElement>(null)
+
 	// Load teachers on open
 	useEffect(() => {
 		if (!teacherOpen || teachers.length > 0) return
@@ -70,6 +73,7 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 		const handleClick = (e: MouseEvent) => {
 			if (teacherRef.current && !teacherRef.current.contains(e.target as Node)) setTeacherOpen(false)
 			if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false)
+			if (burgerRef.current && !burgerRef.current.contains(e.target as Node)) setBurgerOpen(false)
 		}
 		document.addEventListener('click', handleClick)
 		return () => document.removeEventListener('click', handleClick)
@@ -116,6 +120,66 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 					</div>
 				)}
 			</div>
+			{/* Burger menu for mobile */}
+			<div className="header-burger" ref={burgerRef}>
+				<button className="header-burger-btn" onClick={(e) => { e.stopPropagation(); setBurgerOpen((o) => !o) }}>
+					<Menu size={18} />
+				</button>
+				{burgerOpen && (
+					<div className="header-burger-dropdown">
+						<button className={`header-tab ${activeTab === 'diff' ? 'active' : ''}`} onClick={() => { onTabChange('diff'); setBurgerOpen(false) }}>
+							<GitCompareArrows size={14} />
+							<span>Diff</span>
+						</button>
+						<div className="header-tab-dropdown" ref={teacherRef}>
+							<button
+								className={`header-tab ${activeTab === 'teachers' ? 'active' : ''}`}
+								onClick={(e) => { e.stopPropagation(); setTeacherOpen((o) => !o) }}
+							>
+								<Layout size={14} />
+								<span>{selectedTeacher || 'Teachers'}</span>
+								<ChevronDown size={12} />
+							</button>
+							{teacherOpen && (
+								<div className="tab-dropdown">
+									<div className="tab-dropdown-search">
+										<Search size={12} />
+										<input
+											ref={teacherSearchRef}
+											value={teacherQuery}
+											onChange={(e) => setTeacherQuery(e.target.value)}
+											placeholder="Search..."
+											onClick={(e) => e.stopPropagation()}
+										/>
+									</div>
+									<div className="tab-dropdown-list">
+										{teacherLoading && <div className="tab-dropdown-loading">Loading...</div>}
+										{filteredTeachers.map((t) => (
+											<button
+												key={t.id}
+												className={`tab-dropdown-item ${t.god ? 'tab-dropdown-god' : ''}`}
+												onClick={() => { onTeacherSelect(t.id, t.name); setTeacherOpen(false); setBurgerOpen(false) }}
+											>
+												{t.name}{t.god ? ' ★' : ''}
+											</button>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+						<button className={`header-tab ${activeTab === 'students' ? 'active' : ''}`} onClick={() => { onTabChange('students'); setBurgerOpen(false) }}>
+							<Users size={14} />
+							<span>Students</span>
+						</button>
+						<button className={`header-tab ${activeTab === 'api' ? 'active' : ''}`} onClick={() => { onTabChange('api'); setBurgerOpen(false) }}>
+							<Server size={14} />
+							<span>API</span>
+						</button>
+					</div>
+				)}
+			</div>
+
+			{/* Desktop tabs (inline) */}
 			<nav className="header-tabs">
 				<button className={`header-tab ${activeTab === 'diff' ? 'active' : ''}`} onClick={() => onTabChange('diff')}>
 					<GitCompareArrows size={14} />
