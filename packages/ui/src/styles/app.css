@@ -127,6 +127,8 @@ a.tab-dropdown-item { text-decoration: none; color: var(--text); display: block;
 .chat-msg-user { align-items: flex-end; }
 .chat-msg-assistant, .chat-msg-system { align-items: flex-start; }
 .chat-msg-author { font-size: 10px; font-weight: 600; margin-bottom: 2px; padding: 0 4px; }
+.chat-msg-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.chat-msg-time { font-size: 9px; color: var(--text2); opacity: 0.6; }
 .chat-msg-user .chat-msg-author { color: var(--accent); }
 .chat-msg-assistant .chat-msg-author { color: var(--green); }
 .chat-msg-system .chat-msg-author { color: var(--yellow); }

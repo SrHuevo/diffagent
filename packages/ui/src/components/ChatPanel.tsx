@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import type { ChatMessage } from '../hooks/useChat'
 
+function formatTime(ts: string): string {
+	if (!ts) return ''
+	try {
+		return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+	} catch { return '' }
+}
+
 interface Props {
 	open: boolean
 	onClose: () => void
@@ -58,12 +65,16 @@ export function ChatPanel({ open, onClose, messages, isProcessing, onSend, onCle
 								<div className="chat-tool">
 									<span className="chat-tool-name">{msg.toolName}</span>
 									{msg.toolInput && <span className="chat-tool-input">{msg.toolInput}</span>}
+									{msg.ts && <span className="chat-msg-time">{formatTime(msg.ts)}</span>}
 								</div>
 							</div>
 						) : (
 							<div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-								<div className="chat-msg-author">
-									{msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Claude' : 'System'}
+								<div className="chat-msg-meta">
+									<span className="chat-msg-author">
+										{msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Claude' : 'System'}
+									</span>
+									{msg.ts && <span className="chat-msg-time">{formatTime(msg.ts)}</span>}
 								</div>
 								<div className="chat-msg-body">
 									{msg.content.trim()}
