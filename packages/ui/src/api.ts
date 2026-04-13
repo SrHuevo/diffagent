@@ -1,13 +1,21 @@
 // Strip credentials from origin (browser includes them after Basic Auth login)
 const cleanOrigin = `${location.protocol}//${location.host}`
-const basePath = import.meta.env.BASE_URL.replace(/\/+$/, '')
+
+// Derive API base path from current URL pathname
+// e.g. /task/diffagent/  → /task/diffagent
+// e.g. /                 → (empty)
+function getBasePath(): string {
+	const path = location.pathname
+	const match = path.match(/^(\/[^/]+\/diffagent)/)
+	return match ? match[1] : ''
+}
+
+const basePath = getBasePath()
 
 export function apiUrl(path: string): string {
 	if (path.startsWith('http')) return path
-	const resolved = path.startsWith('/') ? `${basePath}${path}` : path
-	// Ensure absolute URL without credentials
-	if (resolved.startsWith('/')) return `${cleanOrigin}${resolved}`
-	return `${cleanOrigin}/${resolved}`
+	const fullPath = path.startsWith('/') ? `${basePath}${path}` : `${basePath}/${path}`
+	return `${cleanOrigin}${fullPath}`
 }
 
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
