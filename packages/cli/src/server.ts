@@ -393,6 +393,33 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
         }
 
         if (pathname === '/api/info') {
+          // Try fast host-computed info first (avoids slow Docker git)
+          try {
+            const http = require('http') as typeof import('http');
+            const branch = require('child_process').execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd(), timeout: 2000 }).trim();
+            const hostInfo = await new Promise<string>((resolve, reject) => {
+              const req = http.get(`http://host.docker.internal:3100/api/host/info/${encodeURIComponent(branch)}`, { timeout: 3000 }, (res) => {
+                if (res.statusCode !== 200) return reject(new Error(`${res.statusCode}`));
+                let data = '';
+                res.on('data', (c: string) => data += c);
+                res.on('end', () => resolve(data));
+              });
+              req.on('error', reject);
+              req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+            });
+            const info = JSON.parse(hostInfo);
+            const ref = url.searchParams.get('ref') || effectiveRef;
+            let sessionId: string | null = null;
+            if (ref) {
+              const session = findOrCreateSession(ref);
+              sessionId = session.id;
+            }
+            sendJson(res, { ...info, capabilities: { reviews: true, revert: true, staleness: false }, sessionId, github: githubRemote, editor: editorAvailable });
+            return;
+          } catch {
+            // Fallback to local (slow)
+          }
+
           const ref = url.searchParams.get('ref') || effectiveRef;
           const info = getRepoInfo();
           let refDescription =
