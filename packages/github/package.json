@@ -1,5 +1,5 @@
 {
-  "name": "@diffity/github",
+  "name": "@diffagent/github",
   "version": "0.9.5",
   "private": true,
   "type": "module",

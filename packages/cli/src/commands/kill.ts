@@ -5,12 +5,12 @@ import { readRegistry, killInstance } from '../registry.js';
 export function registerKillCommand(program: Command) {
   program
     .command('kill')
-    .description('Stop all running diffity instances')
+    .description('Stop all running diffagent instances')
     .action(() => {
       const entries = readRegistry();
 
       if (entries.length === 0) {
-        console.log(pc.dim('No running diffity instances.'));
+        console.log(pc.dim('No running diffagent instances.'));
         return;
       }
 

@@ -1,10 +1,10 @@
 {
-  "name": "diffity",
+  "name": "diffagent",
   "version": "0.9.5",
   "description": "GitHub-style git diff viewer in the browser",
   "type": "module",
   "bin": {
-    "diffity": "./dist/index.js"
+    "diffagent": "./dist/index.js"
   },
   "scripts": {
     "build": "tsx build.ts",
@@ -33,11 +33,11 @@
   "license": "PolyForm-Shield-1.0.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kamranahmedse/diffity.git"
+    "url": "git+https://github.com/SrHuevo/diffagent.git"
   },
-  "homepage": "https://diffity.com",
+  "homepage": "https://diffagent.dev",
   "bugs": {
-    "url": "https://github.com/kamranahmedse/diffity/issues"
+    "url": "https://github.com/SrHuevo/diffagent/issues"
   },
   "engines": {
     "node": ">=18"

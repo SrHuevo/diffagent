@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getHeadHash, getDiffityDir } from '@diffity/git';
+import { getHeadHash, getDiffityDir } from '@diffagent/git';
 import { getDb } from './db.js';
 
 export interface Session {

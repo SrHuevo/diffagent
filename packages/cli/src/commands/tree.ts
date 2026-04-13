@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { createHash } from 'node:crypto';
 import open from 'open';
 import pc from 'picocolors';
-import { isGitRepo, getRepoRoot, getRepoName } from '@diffity/git';
+import { isGitRepo, getRepoRoot, getRepoName } from '@diffagent/git';
 import { startServer } from '../server.js';
 import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance, checkInstanceHealth } from '../registry.js';
 
@@ -46,7 +46,7 @@ export function registerTreeCommand(program: Command, version: string) {
 
           if (!opts.quiet) {
             console.log('');
-            console.log(pc.bold('  diffity tree'));
+            console.log(pc.bold('  diffagent tree'));
             console.log(`  ${pc.dim('Reusing running instance')}`);
             console.log('');
             console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);
@@ -83,7 +83,7 @@ export function registerTreeCommand(program: Command, version: string) {
 
         if (!opts.quiet) {
           console.log('');
-          console.log(pc.bold('  diffity tree'));
+          console.log(pc.bold('  diffagent tree'));
           console.log(`  ${pc.dim('Repository file browser')}`);
           console.log('');
           console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);

@@ -15,7 +15,7 @@ export interface RegistryEntry {
   version?: string;
 }
 
-const DIFFITY_DIR = join(homedir(), '.diffity');
+const DIFFITY_DIR = join(homedir(), '.diffagent');
 const REGISTRY_PATH = join(DIFFITY_DIR, 'registry.json');
 const LOCK_PATH = join(DIFFITY_DIR, 'registry.lock');
 const LOCK_STALE_MS = 5000;

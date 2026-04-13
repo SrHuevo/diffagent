@@ -9,7 +9,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { parseDiff, type ParsedDiff } from '@diffity/parser';
+import { parseDiff, type ParsedDiff } from '@diffagent/parser';
 import { handleClaudeRoutes } from './claude-routes.js';
 import { handleChatRoutes } from './chat-routes.js';
 import {
@@ -39,14 +39,14 @@ import {
   getWorkingTreeFileContent,
   getWorkingTreeRawFile,
   WORKING_TREE_REFS,
-} from '@diffity/git';
+} from '@diffagent/git';
 import {
   detectRemote as detectGitHubRemote,
   fetchDetails as fetchGitHubDetails,
   pushComments as pushGitHubComments,
   pullComments as pullGitHubComments,
   type PrComment,
-} from '@diffity/github';
+} from '@diffagent/github';
 import { findOrCreateSession } from './session.js';
 import { createThread, addReply, getThreadsForSession } from './threads.js';
 import { handleReviewRoute } from './review-routes.js';

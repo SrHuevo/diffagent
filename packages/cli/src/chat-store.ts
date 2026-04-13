@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { getRepoRoot } from '@diffity/git'
+import { getRepoRoot } from '@diffagent/git'
 
 export interface ChatMessage {
 	role: 'user' | 'assistant' | 'system'
@@ -13,7 +13,7 @@ export interface ChatState {
 	messages: ChatMessage[]
 }
 
-const CHAT_FILE = '.diffity-chat.json'
+const CHAT_FILE = '.diffagent-chat.json'
 
 function getChatPath(): string {
 	return join(getRepoRoot(), CHAT_FILE)

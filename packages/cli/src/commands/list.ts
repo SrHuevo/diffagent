@@ -9,7 +9,7 @@ dayjs.extend(relativeTime);
 export function registerListCommand(program: Command) {
   program
     .command('list')
-    .description('List all running diffity instances')
+    .description('List all running diffagent instances')
     .option('--json', 'Output as JSON')
     .action((opts) => {
       const entries = readRegistry();
@@ -20,7 +20,7 @@ export function registerListCommand(program: Command) {
       }
 
       if (entries.length === 0) {
-        console.log(pc.dim('No running diffity instances.'));
+        console.log(pc.dim('No running diffagent instances.'));
         return;
       }
 

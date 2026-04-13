@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import open from 'open';
 import pc from 'picocolors';
-import { isGitRepo, isValidGitRef, getRepoRoot, getRepoName, normalizeRef, WORKING_TREE_REFS } from '@diffity/git';
+import { isGitRepo, isValidGitRef, getRepoRoot, getRepoName, normalizeRef, WORKING_TREE_REFS } from '@diffagent/git';
 import {
   isGitHubPrUrl,
   parseGitHubPrUrl,
@@ -12,7 +12,7 @@ import {
   isCliInstalled,
   isAuthenticated,
   detectRemote,
-} from '@diffity/github';
+} from '@diffagent/github';
 import { startServer } from './server.js';
 import { registerAgentCommands } from './agent.js';
 import { findInstanceForRepo, findAvailablePort, deregisterInstance, killInstance, checkInstanceHealth } from './registry.js';
@@ -31,7 +31,7 @@ const pkg = require('../package.json');
 const program = new Command();
 
 program
-  .name('diffity')
+  .name('diffagent')
   .description('GitHub-style git diff viewer in the browser')
   .version(pkg.version)
   .enablePositionalOptions()
@@ -48,24 +48,24 @@ program
   .option('--new', 'Stop existing instance and start fresh')
   .addHelpText('after', `
 Common usage:
-  $ diffity                              See all uncommitted changes
-  $ diffity main                         What changed since main
-  $ diffity HEAD~1                       Review your last commit
-  $ diffity main..feature                Compare two branches
-  $ diffity --base main --compare feature   Same as above
-  $ diffity v1.0.0 v2.0.0               Compare two tags
-  $ diffity staged                       Only staged changes
-  $ diffity unstaged                     Only unstaged changes
-  $ diffity https://github.com/owner/repo/pull/123   Review a GitHub PR
-  $ diffity --dark --unified             Dark mode, unified view
-  $ diffity --new                        Force restart existing instance
+  $ diffagent                              See all uncommitted changes
+  $ diffagent main                         What changed since main
+  $ diffagent HEAD~1                       Review your last commit
+  $ diffagent main..feature                Compare two branches
+  $ diffagent --base main --compare feature   Same as above
+  $ diffagent v1.0.0 v2.0.0               Compare two tags
+  $ diffagent staged                       Only staged changes
+  $ diffagent unstaged                     Only unstaged changes
+  $ diffagent https://github.com/owner/repo/pull/123   Review a GitHub PR
+  $ diffagent --dark --unified             Dark mode, unified view
+  $ diffagent --new                        Force restart existing instance
 
 Other commands:
-  $ diffity tree                         Browse repository files
-  $ diffity tree --dark                  Browse in dark mode
-  $ diffity list                         List running instances
-  $ diffity kill                         Stop all running instances
-  $ diffity prune                        Remove all diffity data
+  $ diffagent tree                         Browse repository files
+  $ diffagent tree --dark                  Browse in dark mode
+  $ diffagent list                         List running instances
+  $ diffagent kill                         Stop all running instances
+  $ diffagent prune                        Remove all diffagent data
 
 The --base/--compare flags are optional — positional args and
 range syntax (main..feature, main...feature) also work.`)
@@ -142,12 +142,12 @@ range syntax (main..feature, main...feature) also work.`)
     if (opts.base || opts.compare) {
       if (refs.length > 0) {
         console.error(pc.red('Error: Cannot use --base/--compare with positional ref arguments.'));
-        console.log(`  Use either ${pc.cyan('diffity --base main --compare feature')} or ${pc.cyan('diffity main feature')}, not both.`);
+        console.log(`  Use either ${pc.cyan('diffagent --base main --compare feature')} or ${pc.cyan('diffagent main feature')}, not both.`);
         process.exit(1);
       }
       if (opts.compare && !opts.base) {
         console.error(pc.red('Error: --compare requires --base.'));
-        console.log(`  Example: ${pc.cyan('diffity --base main --compare feature')}`);
+        console.log(`  Example: ${pc.cyan('diffagent --base main --compare feature')}`);
         process.exit(1);
       }
       refs.push(opts.base);
@@ -170,15 +170,15 @@ range syntax (main..feature, main...feature) also work.`)
         console.error(pc.red(`Error: '${ref}' is not a valid git reference.`));
         console.log('');
         console.log('Examples:');
-        console.log(`  ${pc.cyan('diffity')}                              See all uncommitted changes`);
-        console.log(`  ${pc.cyan('diffity main')}                         What changed since main`);
-        console.log(`  ${pc.cyan('diffity HEAD~1')}                       Review your last commit`);
-        console.log(`  ${pc.cyan('diffity main..feature')}                Compare two branches`);
-        console.log(`  ${pc.cyan('diffity --base main --compare feature')}   Compare two branches`);
-        console.log(`  ${pc.cyan('diffity staged')}                       Only staged changes`);
-        console.log(`  ${pc.cyan('diffity tree')}                         Browse repository files`);
+        console.log(`  ${pc.cyan('diffagent')}                              See all uncommitted changes`);
+        console.log(`  ${pc.cyan('diffagent main')}                         What changed since main`);
+        console.log(`  ${pc.cyan('diffagent HEAD~1')}                       Review your last commit`);
+        console.log(`  ${pc.cyan('diffagent main..feature')}                Compare two branches`);
+        console.log(`  ${pc.cyan('diffagent --base main --compare feature')}   Compare two branches`);
+        console.log(`  ${pc.cyan('diffagent staged')}                       Only staged changes`);
+        console.log(`  ${pc.cyan('diffagent tree')}                         Browse repository files`);
         console.log('');
-        console.log(`Run ${pc.cyan('diffity --help')} for more options.`);
+        console.log(`Run ${pc.cyan('diffagent --help')} for more options.`);
         process.exit(1);
       }
     }
@@ -235,7 +235,7 @@ range syntax (main..feature, main...feature) also work.`)
 
         if (!opts.quiet) {
           console.log('');
-          console.log(pc.bold('  diffity'));
+          console.log(pc.bold('  diffagent'));
           console.log(`  ${pc.dim('Already running for this repo')}`);
           console.log('');
           console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);
@@ -273,7 +273,7 @@ range syntax (main..feature, main...feature) also work.`)
 
       if (!opts.quiet) {
         console.log('');
-        console.log(pc.bold('  diffity'));
+        console.log(pc.bold('  diffagent'));
         console.log(`  ${pc.dim(description)}`);
         console.log('');
         console.log(`  ${pc.green('→')} ${pc.cyan(url)}`);

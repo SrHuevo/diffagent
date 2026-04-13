@@ -2,14 +2,14 @@ import type { Command } from 'commander';
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
-import { isGitRepo } from '@diffity/git';
+import { isGitRepo } from '@diffagent/git';
 
 const require = createRequire(import.meta.url);
 
 export function registerDoctorCommand(program: Command, version: string) {
   program
     .command('doctor')
-    .description('Check that diffity can run correctly')
+    .description('Check that diffagent can run correctly')
     .action(() => {
       let ok = true;
 
@@ -42,7 +42,7 @@ export function registerDoctorCommand(program: Command, version: string) {
       }
 
       process.stdout.write('  version      ');
-      console.log(pc.green(`✓ diffity ${version}`));
+      console.log(pc.green(`✓ diffagent ${version}`));
 
       console.log('');
       if (ok) {

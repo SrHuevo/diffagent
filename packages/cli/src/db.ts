@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { join } from 'node:path';
-import { getDiffityDir } from '@diffity/git';
+import { getDiffityDir } from '@diffagent/git';
 
 let db: Database.Database | null = null;
 

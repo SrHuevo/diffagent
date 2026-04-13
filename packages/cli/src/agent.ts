@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import pc from 'picocolors';
-import { isGitRepo, getDiffFiles, resolveRef } from '@diffity/git';
+import { isGitRepo, getDiffFiles, resolveRef } from '@diffagent/git';
 import { getCurrentSession } from './session.js';
 import {
   createThread,
@@ -22,7 +22,7 @@ function requireSession() {
   const session = getCurrentSession();
   if (!session) {
     console.error(pc.red('Error: No active review session.'));
-    console.error(pc.dim('Start diffity first to create a session.'));
+    console.error(pc.dim('Start diffagent first to create a session.'));
     process.exit(1);
   }
   return session;
@@ -68,14 +68,14 @@ export function registerAgentCommands(program: Command): void {
     .description('Agent commands for interacting with review comments')
     .addHelpText('after', `
 Examples:
-  $ diffity agent list --status open --json
-  $ diffity agent comment --file src/app.ts --line 42 --body "Missing null check"
-  $ diffity agent resolve abc123 --summary "Added null check"
-  $ diffity agent reply abc123 --body "Good catch, fixed"
-  $ diffity agent general-comment --body "Overall this looks good, just a few nits"
-  $ diffity agent tour-start --topic "How does auth work?" --body "Overview of the auth flow"
-  $ diffity agent tour-step --tour <id> --file src/auth.ts --line 10 --body "Entry point"
-  $ diffity agent tour-done --tour <id>`);
+  $ diffagent agent list --status open --json
+  $ diffagent agent comment --file src/app.ts --line 42 --body "Missing null check"
+  $ diffagent agent resolve abc123 --summary "Added null check"
+  $ diffagent agent reply abc123 --body "Good catch, fixed"
+  $ diffagent agent general-comment --body "Overall this looks good, just a few nits"
+  $ diffagent agent tour-start --topic "How does auth work?" --body "Overview of the auth flow"
+  $ diffagent agent tour-step --tour <id> --file src/auth.ts --line 10 --body "Entry point"
+  $ diffagent agent tour-done --tour <id>`);
 
   agent
     .command('list')
