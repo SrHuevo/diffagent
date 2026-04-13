@@ -58,7 +58,7 @@ export function ChatPanel({ open, onClose, messages, isProcessing, onSend, onCle
 								{msg.role === 'user' ? 'You' : msg.role === 'assistant' ? 'Claude' : 'System'}
 							</div>
 							<div className="chat-msg-body">
-								{msg.content}
+								{msg.content.trim()}
 								{msg.isStreaming && <span className="chat-cursor">▊</span>}
 							</div>
 						</div>
