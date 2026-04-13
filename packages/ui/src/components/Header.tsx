@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search, LayoutGrid, Menu } from 'lucide-react'
+import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search, LayoutGrid, Menu, GitPullRequest } from 'lucide-react'
 
 export type Tab = 'diff' | 'teachers' | 'students' | 'api'
 
@@ -22,6 +22,8 @@ interface Props {
 	onTabChange: (tab: Tab) => void
 	onTeacherSelect: (teacherId: string, teacherName: string) => void
 	selectedTeacher: string | null
+	onPull: () => void
+	isPulling: boolean
 }
 
 function getTaskFromUrl(): string | null {
@@ -29,7 +31,7 @@ function getTaskFromUrl(): string | null {
 	return match ? match[1] : null
 }
 
-export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeacherSelect, selectedTeacher }: Props) {
+export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeacherSelect, selectedTeacher, onPull, isPulling }: Props) {
 	const [teacherOpen, setTeacherOpen] = useState(false)
 	const [teachers, setTeachers] = useState<Teacher[]>([])
 	const [teacherQuery, setTeacherQuery] = useState('')
@@ -112,6 +114,10 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 					)}
 				</div>
 				<span className="header-branch">{branch}</span>
+				<button className="header-pull-btn" onClick={onPull} disabled={isPulling} title="Pull latest from base branch (via Claude)">
+					<GitPullRequest size={12} />
+					<span>{isPulling ? 'Pulling...' : 'Pull'}</span>
+				</button>
 				{stats && activeTab === 'diff' && (
 					<div className="header-stats">
 						<span className="stat-files">{stats.filesChanged}</span>

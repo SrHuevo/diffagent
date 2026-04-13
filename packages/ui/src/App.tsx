@@ -35,6 +35,7 @@ export function App() {
 	const [teacherIframeUrl, setTeacherIframeUrl] = useState<string | null>(null)
 	const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null)
 	const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['diff']))
+	const [isPulling, setIsPulling] = useState(false)
 
 	const filesOpen = activePanel === 'files'
 	const chatOpen = activePanel === 'chat'
@@ -71,6 +72,15 @@ export function App() {
 		setLoadedTabs((prev) => new Set(prev).add('teachers'))
 	}, [])
 
+	const handlePull = useCallback(async () => {
+		if (isPulling) return
+		setIsPulling(true)
+		setActivePanel('chat')
+		const baseBranch = info?.description?.replace('Changes from ', '') || 'feature/version-3'
+		await chat.send(`Haz git fetch origin y luego git merge origin/${baseBranch} --no-edit. Si hay conflictos, resuélvelos de forma inteligente manteniendo ambos cambios cuando sea posible. Después muestra un resumen de lo que se actualizó.`)
+		setIsPulling(false)
+	}, [isPulling, chat, info])
+
 	return (
 		<div className="app">
 			<Header
@@ -81,6 +91,8 @@ export function App() {
 				onTabChange={handleTabChange}
 				onTeacherSelect={handleTeacherSelect}
 				selectedTeacher={selectedTeacher}
+				onPull={handlePull}
+				isPulling={isPulling}
 			/>
 
 			<FileTree
