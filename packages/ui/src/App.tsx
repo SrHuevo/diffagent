@@ -37,6 +37,7 @@ export function App() {
 	const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['diff']))
 	const [isPulling, setIsPulling] = useState(false)
 	const [isSyncing, setIsSyncing] = useState(false)
+	const [isResolving, setIsResolving] = useState(false)
 
 	const filesOpen = activePanel === 'files'
 	const chatOpen = activePanel === 'chat'
@@ -96,6 +97,36 @@ export function App() {
 		}
 		setIsSyncing(false)
 	}, [isSyncing])
+
+	const handleResolveComments = useCallback(async () => {
+		if (isResolving) return
+		const openComments = threads.filter((t) => t.status === 'open')
+		if (openComments.length === 0) return
+
+		setIsResolving(true)
+		setActivePanel('chat')
+
+		// Build a prompt listing all open comments with file:line and body
+		const commentLines = openComments.map((t) => {
+			const bodies = t.comments.map((c) => `  - ${c.authorName}: ${c.body}`).join('\n')
+			return `File: ${t.filePath}, line ${t.startLine} (${t.side} side):\n${bodies}`
+		}).join('\n\n')
+
+		const prompt = [
+			'There are review comments that need to be addressed. Please fix the code according to these comments:\n',
+			commentLines,
+			'\nAfter fixing each issue, briefly explain what you changed.',
+		].join('\n')
+
+		await chat.send(prompt)
+
+		// Mark all open threads as resolved after Claude processes them
+		for (const t of openComments) {
+			await resolve(t.id)
+		}
+
+		setIsResolving(false)
+	}, [isResolving, threads, chat, resolve])
 
 	return (
 		<div className="app">
@@ -175,7 +206,9 @@ export function App() {
 			<BottomBar
 				onToggleFiles={() => setActivePanel((p) => p === 'files' ? null : 'files')}
 				onToggleChat={() => setActivePanel((p) => p === 'chat' ? null : 'chat')}
+				onResolveComments={handleResolveComments}
 				openThreads={openThreads}
+				isResolving={isResolving}
 			/>
 		</div>
 	)

@@ -57,7 +57,7 @@ export function useThreads(sessionId: string | null | undefined) {
 	}, [refresh])
 
 	const resolve = useCallback(async (threadId: string) => {
-		await fetch(`/api/threads/${threadId}/status`, {
+		await apiFetch(`/api/threads/${threadId}/status`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ status: 'resolved' }),

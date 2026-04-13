@@ -1,4 +1,5 @@
 .diffity/
+.diffagent-comments.json
 .playwright-cli
 node_modules/
 tmp
