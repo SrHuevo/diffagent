@@ -51,7 +51,10 @@ export class ClaudeProcess extends EventEmitter {
     // Run as non-root user 'dev' if running as root (required for --dangerously-skip-permissions)
     const isRoot = process.getuid?.() === 0;
     const cmd = isRoot ? 'su' : 'claude';
-    const spawnArgs = isRoot ? ['dev', '-c', `claude ${args.join(' ')}`] : args;
+    // Quote each arg for shell when running via su -c (spaces in message would split otherwise)
+    const spawnArgs = isRoot
+      ? ['dev', '-c', `claude ${args.map((a) => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`]
+      : args;
 
     this.activeProcess = spawn(cmd, spawnArgs, {
       cwd: this.cwd || process.cwd(),

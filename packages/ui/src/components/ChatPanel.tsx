@@ -30,7 +30,7 @@ export function ChatPanel({ open, onClose, messages, isProcessing, onSend, onCle
 	}
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === 'Enter' && !e.shiftKey) {
+		if (e.key === 'Enter' && e.ctrlKey) {
 			e.preventDefault()
 			handleSubmit()
 		}

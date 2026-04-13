@@ -38,6 +38,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tab-dropdown-item { display: block; width: 100%; padding: 6px 12px; background: none; border: none; color: var(--text); cursor: pointer; font-size: 12px; text-align: left; }
 .tab-dropdown-item:hover { background: var(--bg3); }
 .tab-dropdown-god { color: var(--yellow); font-weight: 600; }
+.tab-dropdown-right { left: auto; right: 0; }
+.tab-dropdown-hub { color: var(--accent); border-bottom: 1px solid var(--border); font-weight: 600; }
+a.tab-dropdown-item { text-decoration: none; color: var(--text); display: block; }
 
 /* ─── Iframe ─── */
 .tab-iframe { width: 100%; height: 100%; border: none; background: var(--bg); }

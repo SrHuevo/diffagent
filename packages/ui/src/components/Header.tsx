@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search } from 'lucide-react'
-import { apiFetch } from '../api'
+import { GitCompareArrows, Layout, Users, Server, ChevronDown, Search, LayoutGrid } from 'lucide-react'
 
 export type Tab = 'diff' | 'teachers' | 'students' | 'api'
 
@@ -8,6 +7,11 @@ interface Teacher {
 	id: string
 	name: string
 	god: boolean
+}
+
+interface TaskInfo {
+	task: string
+	slot: string
 }
 
 interface Props {
@@ -20,54 +24,89 @@ interface Props {
 	selectedTeacher: string | null
 }
 
+function getTaskFromUrl(): string | null {
+	const match = window.location.pathname.match(/^\/([^/]+)\/diffagent/)
+	return match ? match[1] : null
+}
+
 export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeacherSelect, selectedTeacher }: Props) {
 	const [teacherOpen, setTeacherOpen] = useState(false)
 	const [teachers, setTeachers] = useState<Teacher[]>([])
-	const [query, setQuery] = useState('')
-	const [loading, setLoading] = useState(false)
-	const dropdownRef = useRef<HTMLDivElement>(null)
-	const searchRef = useRef<HTMLInputElement>(null)
+	const [teacherQuery, setTeacherQuery] = useState('')
+	const [teacherLoading, setTeacherLoading] = useState(false)
+	const teacherRef = useRef<HTMLDivElement>(null)
+	const teacherSearchRef = useRef<HTMLInputElement>(null)
 
+	const [navOpen, setNavOpen] = useState(false)
+	const [tasks, setTasks] = useState<TaskInfo[]>([])
+	const navRef = useRef<HTMLDivElement>(null)
+
+	// Load teachers on open
 	useEffect(() => {
 		if (!teacherOpen || teachers.length > 0) return
-		setLoading(true)
-		const path = window.location.pathname
-		const match = path.match(/^\/([^/]+)\//)
-		if (!match) return
-		fetch(`${window.location.origin}/api/host/teachers/${match[1]}`)
+		setTeacherLoading(true)
+		const task = getTaskFromUrl()
+		if (!task) return
+		fetch(`${window.location.origin}/api/host/teachers/${task}`)
 			.then((r) => r.ok ? r.json() : [])
 			.then(setTeachers)
 			.catch(() => {})
-			.finally(() => setLoading(false))
+			.finally(() => setTeacherLoading(false))
 	}, [teacherOpen, teachers.length])
 
-	useEffect(() => {
-		if (teacherOpen) { setQuery(''); searchRef.current?.focus() }
-	}, [teacherOpen])
+	useEffect(() => { if (teacherOpen) { setTeacherQuery(''); teacherSearchRef.current?.focus() } }, [teacherOpen])
 
+	// Load tasks on nav open
+	useEffect(() => {
+		if (!navOpen) return
+		fetch(`${window.location.origin}/api/tasks`)
+			.then((r) => r.ok ? r.json() : [])
+			.then((t: any[]) => setTasks(t.map(x => ({ task: x.task, slot: x.slot }))))
+			.catch(() => {})
+	}, [navOpen])
+
+	// Close dropdowns on outside click
 	useEffect(() => {
 		const handleClick = (e: MouseEvent) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-				setTeacherOpen(false)
-			}
+			if (teacherRef.current && !teacherRef.current.contains(e.target as Node)) setTeacherOpen(false)
+			if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false)
 		}
 		document.addEventListener('click', handleClick)
 		return () => document.removeEventListener('click', handleClick)
 	}, [])
 
-	const filtered = query
-		? teachers.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
+	const filteredTeachers = teacherQuery
+		? teachers.filter((t) => t.name.toLowerCase().includes(teacherQuery.toLowerCase()))
 		: teachers
 
-	const handleTeacherClick = (t: Teacher) => {
-		onTeacherSelect(t.id, t.name)
-		setTeacherOpen(false)
-	}
+	const currentTask = getTaskFromUrl()
 
 	return (
 		<header className="header">
 			<div className="header-left">
-				<span className="header-repo">{repoName}</span>
+				<div className="header-tab-dropdown" ref={navRef}>
+					<button className="header-tab" onClick={(e) => { e.stopPropagation(); setNavOpen((o) => !o) }}>
+						<LayoutGrid size={14} />
+						<span>{currentTask || 'Tasks'}</span>
+						<ChevronDown size={12} />
+					</button>
+					{navOpen && (
+						<div className="tab-dropdown">
+							<a className="tab-dropdown-item tab-dropdown-hub" href={window.location.origin} target="_self">
+								← Dashboard
+							</a>
+							{tasks.filter(t => t.task !== currentTask).map(t => (
+								<a
+									key={t.slot}
+									className="tab-dropdown-item"
+									href={`${window.location.origin}/${t.task}/diffagent/`}
+								>
+									{t.task}
+								</a>
+							))}
+						</div>
+					)}
+				</div>
 				<span className="header-branch">{branch}</span>
 				{stats && activeTab === 'diff' && (
 					<div className="header-stats">
@@ -83,7 +122,7 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 					<span>Diff</span>
 				</button>
 
-				<div className="header-tab-dropdown" ref={dropdownRef}>
+				<div className="header-tab-dropdown" ref={teacherRef}>
 					<button
 						className={`header-tab ${activeTab === 'teachers' ? 'active' : ''}`}
 						onClick={(e) => { e.stopPropagation(); setTeacherOpen((o) => !o) }}
@@ -93,24 +132,24 @@ export function Header({ repoName, branch, stats, activeTab, onTabChange, onTeac
 						<ChevronDown size={12} />
 					</button>
 					{teacherOpen && (
-						<div className="tab-dropdown">
+						<div className="tab-dropdown tab-dropdown-right">
 							<div className="tab-dropdown-search">
 								<Search size={12} />
 								<input
-									ref={searchRef}
-									value={query}
-									onChange={(e) => setQuery(e.target.value)}
+									ref={teacherSearchRef}
+									value={teacherQuery}
+									onChange={(e) => setTeacherQuery(e.target.value)}
 									placeholder="Search..."
 									onClick={(e) => e.stopPropagation()}
 								/>
 							</div>
 							<div className="tab-dropdown-list">
-								{loading && <div className="tab-dropdown-loading">Loading...</div>}
-								{filtered.map((t) => (
+								{teacherLoading && <div className="tab-dropdown-loading">Loading...</div>}
+								{filteredTeachers.map((t) => (
 									<button
 										key={t.id}
 										className={`tab-dropdown-item ${t.god ? 'tab-dropdown-god' : ''}`}
-										onClick={() => handleTeacherClick(t)}
+										onClick={() => { onTeacherSelect(t.id, t.name); setTeacherOpen(false) }}
 									>
 										{t.name}{t.god ? ' ★' : ''}
 									</button>
