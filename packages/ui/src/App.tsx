@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { Header } from './components/Header'
 import { FileTree } from './components/FileTree'
 import { DiffViewer } from './components/DiffViewer'
@@ -13,15 +13,11 @@ export function App() {
 	const { info } = useRepoInfo()
 	const { data: diff, loading: diffLoading, error: diffError } = useDiff()
 	const chat = useChat()
-	const { threads } = useThreads(info?.sessionId)
+	const { threads, createThread, reply, resolve } = useThreads(info?.sessionId)
 
 	const [filesOpen, setFilesOpen] = useState(false)
 	const [chatOpen, setChatOpen] = useState(false)
 	const [selectedFile, setSelectedFile] = useState<string | null>(null)
-
-	const handleLineClick = useCallback((filePath: string, line: number, side: 'old' | 'new') => {
-		console.log('Comment on', filePath, line, side)
-	}, [])
 
 	const openThreads = threads.filter((t) => t.status === 'open').length
 
@@ -64,7 +60,10 @@ export function App() {
 					<DiffViewer
 						rawDiff={diff.rawDiff}
 						selectedFile={selectedFile}
-						onLineClick={handleLineClick}
+						threads={threads}
+						onCreateComment={createThread}
+						onReply={reply}
+						onResolve={resolve}
 					/>
 				)}
 			</main>

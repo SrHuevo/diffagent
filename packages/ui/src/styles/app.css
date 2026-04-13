@@ -112,6 +112,36 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .d2h-code-line-prefix { color: var(--text2); }
 .d2h-diff-tbody tr { border-color: var(--border); }
 
+/* ─── Comments ─── */
+.comment-portal-row td, .comment-form-portal-row td { padding: 0 !important; background: var(--bg) !important; }
+.comment-portal { padding: 8px 12px 8px 48px; }
+
+.comment-thread { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; }
+.comment-thread-resolved { opacity: 0.6; }
+.comment { margin-bottom: 6px; }
+.comment-author { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.comment-user .comment-author { color: var(--accent); }
+.comment-agent .comment-author { color: var(--green); }
+.comment-body { font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
+.comment-actions { display: flex; gap: 8px; margin-top: 4px; }
+.comment-resolved { color: var(--green); font-size: 11px; }
+.btn-resolve { color: var(--green); }
+.comment-reply { margin-top: 6px; }
+.comment-reply textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 13px; font-family: inherit; resize: none; }
+.comment-reply textarea:focus { outline: none; border-color: var(--accent); }
+.comment-reply-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
+
+.comment-form { background: var(--bg2); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; }
+.comment-form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.comment-form-file { font-size: 11px; color: var(--text2); font-family: 'Cascadia Code', monospace; }
+.comment-form textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 13px; font-family: inherit; resize: none; }
+.comment-form textarea:focus { outline: none; border-color: var(--accent); }
+.comment-form-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+.btn-cancel { background: none; border: 1px solid var(--border); color: var(--text2); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.btn-cancel:hover { color: var(--text); }
+.btn-submit { background: var(--accent); border: none; color: #fff; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ─── Desktop (>768px) ─── */
 @media (min-width: 769px) {
 	.bottom-bar { display: none; }
