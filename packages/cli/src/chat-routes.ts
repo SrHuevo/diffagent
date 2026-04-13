@@ -110,8 +110,10 @@ export function handleChatRoutes(
 		return true
 	}
 
+	// Ensure .gitignore includes chat file on first chat route access
+	if (pathname.startsWith('/api/chat/')) {
+		ensureGitignore()
+	}
+
 	return false
 }
-
-// Call on server startup
-ensureGitignore()
