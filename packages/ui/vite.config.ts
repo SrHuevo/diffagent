@@ -1,23 +1,19 @@
-import { reactRouter } from "@react-router/dev/vite";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
 
 export default defineConfig({
-  base: "./",
-  plugins: [tailwindcss(), reactRouter()],
-  test: {
-    include: ["tests/**/*.test.ts"],
-  },
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:5391",
-        changeOrigin: true,
-      },
-    },
-  },
-  build: {
-    chunkSizeWarningLimit: 1000,
-    emptyOutDir: true,
-  },
-});
+	base: './',
+	plugins: [react()],
+	server: {
+		proxy: {
+			'/api': {
+				target: 'http://localhost:5391',
+				changeOrigin: true,
+			},
+		},
+	},
+	build: {
+		outDir: '../cli/dist/ui',
+		emptyOutDir: true,
+	},
+})

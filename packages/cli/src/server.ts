@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { parseDiff, type ParsedDiff } from '@diffity/parser';
 import { handleClaudeRoutes } from './claude-routes.js';
+import { handleChatRoutes } from './chat-routes.js';
 import {
   getDiff,
   getDiffStatForRef,
@@ -316,6 +317,17 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
           return;
         }
 
+        // Raw unified diff text for diff2html
+        if (pathname === '/api/diff/raw') {
+          const ref = url.searchParams.get('ref') || 'work';
+          const whitespace = url.searchParams.get('whitespace');
+          const extraArgs = whitespace === 'hide' ? ['-w'] : [];
+          const raw = resolveRef(ref, extraArgs);
+          res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+          res.end(raw);
+          return;
+        }
+
         if (pathname === '/api/diff') {
           const ref = url.searchParams.get('ref');
           const whitespace = url.searchParams.get('whitespace');
@@ -556,6 +568,10 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
             github: githubRemote,
             editor: editorAvailable,
           });
+          return;
+        }
+
+        if (handleChatRoutes(req, res, pathname, process.cwd())) {
           return;
         }
 
