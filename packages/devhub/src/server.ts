@@ -7,7 +7,7 @@ import { config } from './config.js'
 import { dkr, sanitizeBranch } from './docker.js'
 import { eventBus } from './events.js'
 import { listBranches, getWorktreeChanges } from './git.js'
-import { getBackupsCached, getTeachersCached, refreshTeachers } from './warmer.js'
+import { getBackupsCached, refreshBackups, getTeachersCached, refreshTeachers } from './warmer.js'
 import { getTunnelUrl, ensureTunnel } from './tunnel.js'
 import { warmupPool } from './operations/warmup.js'
 import { activateTask } from './operations/activate.js'
@@ -109,9 +109,11 @@ const routes: Route[] = [
 		sendJson(res, 200, branches)
 	}),
 
-	// Backups — for the create-task dropdown (served from warmer cache)
+	// Backups — SWR: serve cached, refresh in background for next request.
 	route('GET', '/api/backups', async (_req, res) => {
-		sendJson(res, 200, getBackupsCached())
+		if (getBackupsCached() === null) refreshBackups()
+		sendJson(res, 200, getBackupsCached() ?? [])
+		setImmediate(() => refreshBackups())
 	}),
 
 	// Tasks list
@@ -227,16 +229,15 @@ const routes: Route[] = [
 		sendJson(res, 200, { running })
 	}),
 
-	// List teachers for impersonation (warmer-cached; refresh on miss)
+	// Teachers — SWR: serve cached, refresh in background for next request.
+	// First hit (no cache) blocks on the mongo query since there's nothing to
+	// serve yet; subsequent hits are instant and pick up fresh data next time.
 	route('GET', '/api/tasks/:task/teachers', async (_req, res, { task }) => {
 		const slot = pool.findTask(task)
 		if (!slot) return sendError(res, 404, 'Task not found')
-		let cached = getTeachersCached(task)
-		if (!cached) {
-			await refreshTeachers(task)
-			cached = getTeachersCached(task) || []
-		}
-		sendJson(res, 200, cached)
+		if (!getTeachersCached(task)) await refreshTeachers(task)
+		sendJson(res, 200, getTeachersCached(task) ?? [])
+		setImmediate(() => refreshTeachers(task).catch(() => {}))
 	}),
 
 	// Host-computed repo info (avoids slow git in Docker)

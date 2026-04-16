@@ -87,11 +87,38 @@ done) &
 # (fixed) so tmux send-keys -t claude from inject endpoints always hits it.
 # Runs as 'dev' because claude refuses --dangerously-skip-permissions as root.
 chown -R dev:dev /home/dev 2>/dev/null || true
+# UTF-8 locale is required for Spanish accents / emojis to render correctly.
+# C.UTF-8 is built into glibc — no need to install the 'locales' apt package.
+UTF8_ENV="LANG=C.UTF-8 LC_ALL=C.UTF-8 LC_CTYPE=C.UTF-8"
+
+# tmux defaults swallow the mouse wheel; enable mouse + a bigger scrollback
+# buffer so the iframe lets the user scroll back through Claude's output.
+cat > /home/dev/.tmux.conf <<'EOF'
+set -g mouse on
+set -g history-limit 50000
+set -g default-terminal "xterm-256color"
+EOF
+chown dev:dev /home/dev/.tmux.conf
+
+# Helper: resume the most-recent Claude session for /app if one exists, else
+# start fresh. Invoked from tmux so the user sees their prior conversation.
+cat > /usr/local/bin/claude-resume-or-fresh <<'EOF'
+#!/bin/bash
+PROJ="$HOME/.claude/projects/-app"
+LATEST=$(ls -t "$PROJ"/*.jsonl 2>/dev/null | head -1)
+if [ -n "$LATEST" ]; then
+	SESSION_ID=$(basename "$LATEST" .jsonl)
+	exec claude --resume "$SESSION_ID" --dangerously-skip-permissions
+fi
+exec claude --dangerously-skip-permissions
+EOF
+chmod +x /usr/local/bin/claude-resume-or-fresh
+
 (while true; do
-	su dev -c "tmux kill-session -t claude 2>/dev/null || true; tmux new-session -d -s claude -c /app 'claude --dangerously-skip-permissions'"
+	su dev -c "$UTF8_ENV tmux kill-session -t claude 2>/dev/null || true; $UTF8_ENV tmux -u new-session -d -s claude -c /app 'env $UTF8_ENV /usr/local/bin/claude-resume-or-fresh'"
 	echo "[$(date -Is)] tmux claude session started" >> /app/.logs/claude-tmux.log
 	# Wait for the session to end, then recreate it
-	while su dev -c "tmux has-session -t claude 2>/dev/null"; do sleep 5; done
+	while su dev -c "$UTF8_ENV tmux has-session -t claude 2>/dev/null"; do sleep 5; done
 	echo "[$(date -Is)] tmux claude session exited, restarting in 2s" >> /app/.logs/claude-tmux.log
 	sleep 2
 done) &
@@ -100,7 +127,7 @@ done) &
 # -W enables write, -t disableLeaveAlert hides the "Are you sure" prompt on close.
 # Runs as dev so 'tmux attach' hits the same tmux server as the session-creating loop.
 (while true; do
-	su dev -c "ttyd -p 7681 -W -t disableLeaveAlert=true -t 'titleFixed=Claude' -t 'theme={\"background\":\"#0d1117\",\"foreground\":\"#e6edf3\"}' tmux attach -t claude" >> /app/.logs/ttyd.log 2>&1
+	su dev -c "$UTF8_ENV ttyd -p 7681 -W -t disableLeaveAlert=true -t 'titleFixed=Claude' -t 'theme={\"background\":\"#0d1117\",\"foreground\":\"#e6edf3\"}' tmux -u attach -t claude" >> /app/.logs/ttyd.log 2>&1
 	echo "[$(date -Is)] ttyd exited, restarting in 2s" >> /app/.logs/ttyd.log
 	sleep 2
 done) &

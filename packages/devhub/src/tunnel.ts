@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn, ChildProcess } from 'node:child_process'
 import { sleep } from './docker.js'
+import { config } from './config.js'
 
 const CLOUDFLARED_LOG = join(tmpdir(), 'cloudflared.log')
 const CLOUDFLARED_PID = join(tmpdir(), 'cloudflared.pid')
@@ -108,11 +109,20 @@ export async function ensureTunnel(): Promise<string | null> {
 		// --logfile/--pidfile are written by cloudflared itself, bypassing the
 		// Windows cmd.exe shim that would otherwise swallow stderr and mask the
 		// real cloudflared.exe PID.
+		// Point the tunnel at the devhub itself (not Traefik) so it works the
+		// same whether the devhub runs on Windows, WSL, or a container — we
+		// don't depend on traefik being able to reach the devhub host, which
+		// is unreliable under Docker-Desktop-on-WSL2 (`host.docker.internal`
+		// resolves to the Docker VM, not the WSL distro).
+		// The devhub's own path-based proxy (proxy.ts::tryProxy) routes
+		// /${task}/* to the right container — no traefik needed for tunnel
+		// traffic. Host-based routing (`app.task.localhost`) still uses
+		// traefik for local browser access.
 		cloudflaredChild = spawn(
 			'cloudflared',
 			[
 				'tunnel',
-				'--url', 'http://localhost:80',
+				'--url', `http://localhost:${config.port}`,
 				'--logfile', CLOUDFLARED_LOG,
 				'--pidfile', CLOUDFLARED_PID,
 			],

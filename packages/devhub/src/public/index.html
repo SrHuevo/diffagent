@@ -272,21 +272,9 @@ async function startDashboard(task, type) {
 
 let teacherCache = {} // task -> teachers[]  (in-memory mirror for filterTeachers)
 
-async function toggleTeacherPicker(task) {
-	const picker = document.getElementById(`tp-${task}`)
-	const isOpen = picker.classList.contains('open')
-
-	// Close all pickers
-	document.querySelectorAll('.teacher-picker.open').forEach(p => p.classList.remove('open'))
-	if (isOpen) return
-
-	picker.classList.add('open')
-	const search = picker.querySelector('.tp-search')
-	search.value = ''
-	search.focus()
-
-	// Instant paint from cache, then refresh in background
-	await swr(
+function prefetchTeachers(task) {
+	// Fire-and-forget: populate cache + localStorage so opening the picker is instant.
+	swr(
 		`teachers:${task}`,
 		async () => {
 			const teachers = await api('GET', `/api/tasks/${encodeURIComponent(task)}/teachers`)
@@ -295,9 +283,29 @@ async function toggleTeacherPicker(task) {
 		},
 		(teachers) => {
 			teacherCache[task] = teachers
-			renderTeacherList(task, teachers)
+			const picker = document.getElementById(`tp-${task}`)
+			if (picker && picker.classList.contains('open')) renderTeacherList(task, teachers)
 		},
 	)
+}
+
+async function toggleTeacherPicker(task) {
+	const picker = document.getElementById(`tp-${task}`)
+	const isOpen = picker.classList.contains('open')
+
+	document.querySelectorAll('.teacher-picker.open').forEach(p => p.classList.remove('open'))
+	if (isOpen) return
+
+	picker.classList.add('open')
+	const search = picker.querySelector('.tp-search')
+	search.value = ''
+	search.focus()
+
+	// Instant paint from whatever's already cached (prefetched on render).
+	// swr below refreshes in the background and re-renders if new data arrives.
+	if (teacherCache[task]) renderTeacherList(task, teacherCache[task])
+	else picker.querySelector('.tp-list').innerHTML = '<div class="tp-item" style="opacity:.5">Loading…</div>'
+	prefetchTeachers(task)
 }
 
 function filterTeachers(task, query) {
@@ -452,6 +460,11 @@ function renderTasks() {
 			</div>
 		</div>
 	`}).join('')
+
+	// Prefetch teachers for every active task so opening the dropdown is instant.
+	for (const t of state.tasks) {
+		if (t.task) prefetchTeachers(t.task)
+	}
 }
 
 function appendLog(data) {

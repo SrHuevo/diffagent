@@ -6,10 +6,10 @@ import type { BackupInfo } from './types.js'
 
 interface Teacher { id: string; name: string; god: boolean }
 
-let backupsCache: BackupInfo[] = []
+let backupsCache: BackupInfo[] | null = null
 const teachersCache = new Map<string, Teacher[]>()
 
-export function getBackupsCached(): BackupInfo[] {
+export function getBackupsCached(): BackupInfo[] | null {
 	return backupsCache
 }
 

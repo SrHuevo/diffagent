@@ -6,13 +6,6 @@ interface Props {
 	className?: string
 }
 
-function isEditableTarget(target: EventTarget | null): boolean {
-	if (!(target instanceof Element)) return false
-	const tag = target.tagName
-	if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
-	return (target as HTMLElement).isContentEditable
-}
-
 export function BrowserIframe({ src, className }: Props) {
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	const [currentUrl, setCurrentUrl] = useState(src)
@@ -38,21 +31,12 @@ export function BrowserIframe({ src, className }: Props) {
 		if (iframeRef.current) iframeRef.current.src = url
 	}
 
-	// Shared shortcut handler. Used from both the parent wrapper (when focus is
-	// on the chrome bar) and from inside the iframe contentWindow (when focus is
-	// on the embedded app). `allowBackspace` is false for editable fields.
-	const handleShortcut = (e: KeyboardEvent | ReactKeyboardEvent, allowBackspace: boolean): boolean => {
-		// Reload: F5 or Ctrl/Cmd+R
+	// Only reload is trapped; back/forward are reachable via the chrome buttons.
+	// Alt+arrows and Backspace used to navigate too but were too easy to trigger
+	// by accident (e.g. Backspace while focused in an input inside the iframe).
+	const handleShortcut = (e: KeyboardEvent | ReactKeyboardEvent): boolean => {
 		if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
 			reload()
-			return true
-		}
-		// Back / Forward: Alt+Left / Alt+Right
-		if (e.altKey && e.key === 'ArrowLeft') { back(); return true }
-		if (e.altKey && e.key === 'ArrowRight') { forward(); return true }
-		// Backspace → back, but only outside editable fields
-		if (allowBackspace && e.key === 'Backspace' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-			back()
 			return true
 		}
 		return false
@@ -94,8 +78,7 @@ export function BrowserIframe({ src, className }: Props) {
 			w.addEventListener('hashchange', sync)
 
 			const onIframeKeyDown = (e: KeyboardEvent) => {
-				const handled = handleShortcut(e, !isEditableTarget(e.target))
-				if (handled) {
+				if (handleShortcut(e)) {
 					e.preventDefault()
 					e.stopPropagation()
 				}
@@ -112,8 +95,7 @@ export function BrowserIframe({ src, className }: Props) {
 	}
 
 	const onWrapperKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-		const handled = handleShortcut(e, !isEditableTarget(e.target))
-		if (handled) {
+		if (handleShortcut(e)) {
 			e.preventDefault()
 			e.stopPropagation()
 		}
@@ -122,10 +104,10 @@ export function BrowserIframe({ src, className }: Props) {
 	return (
 		<div className={`browser-iframe ${className || ''}`} onKeyDown={onWrapperKeyDown}>
 			<div className="browser-chrome">
-				<button type="button" className="browser-btn" title="Back (Alt+←, Backspace)" onClick={back}>
+				<button type="button" className="browser-btn" title="Back" onClick={back}>
 					<ArrowLeft size={16} />
 				</button>
-				<button type="button" className="browser-btn" title="Forward (Alt+→)" onClick={forward}>
+				<button type="button" className="browser-btn" title="Forward" onClick={forward}>
 					<ArrowRight size={16} />
 				</button>
 				<button type="button" className="browser-btn" title="Reload (F5, Ctrl+R)" onClick={reload}>

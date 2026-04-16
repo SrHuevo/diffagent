@@ -16,6 +16,12 @@ services:
       - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro
     networks:
       - diluu-dev
+    extra_hosts:
+      # Docker Desktop WSL2: `host.docker.internal` points at the Docker VM,
+      # not the WSL distro where the devhub process lives. `host-gateway`
+      # resolves to the docker engine host, which IS the WSL distro — so
+      # traefik can reach the devhub on localhost:3100 of that distro.
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
 networks:
