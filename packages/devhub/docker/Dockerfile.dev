@@ -1,0 +1,77 @@
+FROM node:22-bookworm-slim
+
+# System deps + Playwright (chromium) runtime libs
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    unzip \
+    procps \
+    tar \
+    tmux \
+    ca-certificates \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libatspi2.0-0 \
+    libpango-1.0-0 libcairo2 libx11-6 libxcb1 libxext6 libxi6 \
+    libxrender1 libxtst6 fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
+# ttyd: serve a terminal over HTTP/WebSocket. The iframe in the DiffAgent UI
+# attaches to a tmux session running `claude`, so the user sees the real TUI.
+RUN curl -fsSL -o /usr/local/bin/ttyd \
+      https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
+    && chmod +x /usr/local/bin/ttyd
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Install Claude Code globally
+RUN npm install -g @anthropic-ai/claude-code
+
+# RTK (Rust Token Killer): prebuilt binary → /usr/local/bin/rtk
+RUN curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/master/install.sh \
+    | RTK_INSTALL_DIR=/usr/local/bin sh
+
+# uv / uvx (needed to run the serena MCP via `uvx --from git+...`)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && cp /root/.local/bin/uv /usr/local/bin/uv \
+    && cp /root/.local/bin/uvx /usr/local/bin/uvx
+
+# Playwright + chromium browser. System libs already installed above;
+# --with-deps is a no-op here but harmless.
+RUN npm install -g playwright @playwright/test \
+    && npx --yes playwright install chromium
+
+# DiffAgent: only the `dist` output is bind-mounted from the host at runtime.
+# Native deps (better-sqlite3) must be built for Linux, so we install them
+# into an in-image layout at /opt/diffagent-linux so node's module resolution
+# walks UP from dist/ and finds the Linux build.
+RUN mkdir -p /opt/diffagent-linux/packages/cli \
+    && printf '%s\n' \
+      '{' \
+      '  "name": "diffagent-linux",' \
+      '  "private": true,' \
+      '  "dependencies": {' \
+      '    "better-sqlite3": "^12.8.0",' \
+      '    "commander": "^14.0.3",' \
+      '    "open": "^11.0.0",' \
+      '    "picocolors": "^1.1.1"' \
+      '  }' \
+      '}' \
+      > /opt/diffagent-linux/package.json \
+    && cd /opt/diffagent-linux && npm install --omit=dev
+
+# Create non-root user (required for --dangerously-skip-permissions)
+RUN useradd -m -s /bin/bash dev
+ENV PATH="/home/dev/.bun/bin:/usr/local/lib/node_modules/.bin:$PATH"
+RUN cp -r /root/.bun /home/dev/.bun && chown -R dev:dev /home/dev/.bun
+
+# Copy entrypoint into image
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /app
+
+# Default: keep container alive for interactive use
+CMD ["bash"]

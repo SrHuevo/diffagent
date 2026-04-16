@@ -1,120 +1,55 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { getClaudeProcess, type ClaudeMessage } from './claude.js'
-import { readChat, appendMessage, setSessionId, clearChat, ensureGitignore } from './chat-store.js'
+import { spawn } from 'node:child_process'
 import { sendJson, sendError, readBody } from './http-utils.js'
+
+const TMUX_SESSION = 'claude'
+
+/**
+ * Paste `text` into the running tmux session's Claude Code prompt and press
+ * Enter. `tmux load-buffer -` accepts the payload on stdin so arbitrary
+ * multi-line content (including special shell characters) is safe.
+ *
+ * DiffAgent runs as root; the tmux server lives under user 'dev' (claude
+ * refuses --dangerously-skip-permissions as root) — so every tmux call is
+ * wrapped in `su dev -c`.
+ */
+function tmuxAsDev(args: string[], stdin?: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const cmd = ['tmux', ...args.map((a) => `'${a.replace(/'/g, `'\\''`)}'`)].join(' ')
+		const p = spawn('su', ['dev', '-c', cmd])
+		if (stdin != null) p.stdin.end(stdin)
+		p.on('error', reject)
+		p.on('exit', (code) => {
+			if (code === 0) resolve()
+			else reject(new Error(`su dev -c "${cmd}" exited ${code}`))
+		})
+	})
+}
+
+async function injectIntoClaudeSession(text: string): Promise<void> {
+	await tmuxAsDev(['load-buffer', '-b', 'inject', '-'], text)
+	await tmuxAsDev(['paste-buffer', '-b', 'inject', '-d', '-t', TMUX_SESSION])
+	await tmuxAsDev(['send-keys', '-t', TMUX_SESSION, 'Enter'])
+}
 
 export function handleChatRoutes(
 	req: IncomingMessage,
 	res: ServerResponse,
 	pathname: string,
-	cwd: string,
 ): boolean {
-	const claude = getClaudeProcess()
-	claude.setCwd(cwd)
-
-	// GET /api/chat/history
-	if (pathname === '/api/chat/history' && req.method === 'GET') {
-		const state = readChat()
-		sendJson(res, { messages: state.messages })
-		return true
-	}
-
-	// POST /api/chat/message — send message and stream response, persist both
-	if (pathname === '/api/chat/message' && req.method === 'POST') {
+	// POST /api/chat/inject — paste a prompt into the running Claude tmux session
+	if (pathname === '/api/chat/inject' && req.method === 'POST') {
 		readBody(req)
-			.then((body) => {
+			.then(async (body) => {
 				const { message } = JSON.parse(body)
-
-				if (claude.isRunning) {
-					return sendError(res, 409, 'Claude is already processing a message')
+				if (typeof message !== 'string' || !message) {
+					return sendError(res, 400, 'message (string) required')
 				}
-
-				// Persist user message
-				appendMessage({ role: 'user', content: message, ts: new Date().toISOString() })
-
-				// Restore session ID from chat state
-				const state = readChat()
-				if (state.sessionId) {
-					// The ClaudeProcess singleton may have lost the sessionId (e.g. after restart)
-					// We force resume by setting it via the chat state
-				}
-
-				// SSE response
-				res.writeHead(200, {
-					'Content-Type': 'text/event-stream',
-					'Cache-Control': 'no-cache',
-					Connection: 'keep-alive',
-					'Access-Control-Allow-Origin': '*',
-				})
-
-				let fullText = ''
-
-				const onText = (text: string) => {
-					fullText += text
-					res.write(`event: text\ndata: ${JSON.stringify({ text })}\n\n`)
-				}
-				const onMessage = (msg: ClaudeMessage) => {
-					// Capture session ID for persistence
-					if (msg.type === 'system' && msg.subtype === 'init' && msg.session_id) {
-						setSessionId(msg.session_id as string)
-					}
-					// Forward all events for terminal-like display
-					res.write(`event: message\ndata: ${JSON.stringify(msg)}\n\n`)
-				}
-				const onResult = (msg: ClaudeMessage) => {
-					const result = msg.result || fullText
-					appendMessage({ role: 'assistant', content: result, ts: new Date().toISOString() })
-					res.write(`event: result\ndata: ${JSON.stringify({ result })}\n\n`)
-					cleanup()
-					res.end()
-				}
-				const onDone = () => {
-					if (fullText) {
-						appendMessage({ role: 'assistant', content: fullText, ts: new Date().toISOString() })
-					}
-					cleanup()
-					res.end()
-				}
-				const onError = (err: Error) => {
-					appendMessage({ role: 'system', content: `Error: ${err.message}`, ts: new Date().toISOString() })
-					res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`)
-					cleanup()
-					res.end()
-				}
-
-				function cleanup() {
-					claude.off('text', onText)
-					claude.off('message', onMessage)
-					claude.off('result', onResult)
-					claude.off('done', onDone)
-					claude.off('error', onError)
-				}
-
-				claude.on('text', onText)
-				claude.on('message', onMessage)
-				claude.on('result', onResult)
-				claude.on('done', onDone)
-				claude.on('error', onError)
-
-				req.on('close', () => cleanup())
-
-				claude.send(message)
+				await injectIntoClaudeSession(message)
+				sendJson(res, { ok: true })
 			})
 			.catch((err) => sendError(res, 500, err.message))
 		return true
-	}
-
-	// POST /api/chat/clear
-	if (pathname === '/api/chat/clear' && req.method === 'POST') {
-		clearChat()
-		claude.reset()
-		sendJson(res, { status: 'cleared' })
-		return true
-	}
-
-	// Ensure .gitignore includes chat file on first chat route access
-	if (pathname.startsWith('/api/chat/')) {
-		ensureGitignore()
 	}
 
 	return false

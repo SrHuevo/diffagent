@@ -1,13 +1,18 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Header, type Tab } from './components/Header'
 import { FileTree } from './components/FileTree'
 import { DiffViewer } from './components/DiffViewer'
 import { ChatPanel } from './components/ChatPanel'
 import { BottomBar } from './components/BottomBar'
+import { BrowserIframe } from './components/BrowserIframe'
 import { useRepoInfo } from './hooks/useRepoInfo'
 import { useDiff } from './hooks/useDiff'
-import { useChat } from './hooks/useChat'
 import { useThreads } from './hooks/useThreads'
+import { apiPost } from './api'
+
+async function injectPrompt(message: string): Promise<void> {
+	await apiPost('/api/chat/inject', { message })
+}
 
 function getTaskFromUrl(): string | null {
 	const match = window.location.pathname.match(/^\/([^/]+)\/diffagent/)
@@ -25,9 +30,12 @@ function buildIframeUrl(tab: Tab): string {
 
 export function App() {
 	const { info } = useRepoInfo()
-	const { data: diff, loading: diffLoading, error: diffError } = useDiff()
-	const chat = useChat()
+	const { data: diff, loading: diffLoading, error: diffError, refresh: refreshDiff } = useDiff()
 	const { threads, createThread, reply, resolve } = useThreads(info?.sessionId)
+
+	useEffect(() => {
+		document.title = info?.branch ? `${info.branch} · diffagent` : 'diffagent'
+	}, [info?.branch])
 
 	const [activePanel, setActivePanel] = useState<'files' | 'chat' | null>(null)
 	const [selectedFile, setSelectedFile] = useState<string | null>(null)
@@ -81,9 +89,12 @@ export function App() {
 		setIsPulling(true)
 		setActivePanel('chat')
 		const baseBranch = info?.description?.replace('Changes from ', '') || 'feature/version-3'
-		await chat.send(`Haz git fetch origin y luego git merge origin/${baseBranch} --no-edit. Si hay conflictos, resuélvelos de forma inteligente manteniendo ambos cambios cuando sea posible. Después muestra un resumen de lo que se actualizó.`)
+		try {
+			await injectPrompt(`Haz git fetch origin y luego git merge origin/${baseBranch} --no-edit. Si hay conflictos, resuélvelos de forma inteligente manteniendo ambos cambios cuando sea posible. Después muestra un resumen de lo que se actualizó.`)
+		} catch {}
 		setIsPulling(false)
-	}, [isPulling, chat, info])
+		setTimeout(() => refreshDiff(), 5000)
+	}, [isPulling, info, refreshDiff])
 
 	const handleSync = useCallback(async () => {
 		if (isSyncing) return
@@ -106,7 +117,6 @@ export function App() {
 		setIsResolving(true)
 		setActivePanel('chat')
 
-		// Build a prompt listing all open comments with file:line and body
 		const commentLines = openComments.map((t) => {
 			const bodies = t.comments.map((c) => `  - ${c.authorName}: ${c.body}`).join('\n')
 			return `File: ${t.filePath}, line ${t.startLine} (${t.side} side):\n${bodies}`
@@ -118,15 +128,17 @@ export function App() {
 			'\nAfter fixing each issue, briefly explain what you changed.',
 		].join('\n')
 
-		await chat.send(prompt)
+		try {
+			await injectPrompt(prompt)
+		} catch {}
 
-		// Mark all open threads as resolved after Claude processes them
 		for (const t of openComments) {
 			await resolve(t.id)
 		}
 
 		setIsResolving(false)
-	}, [isResolving, threads, chat, resolve])
+		setTimeout(() => refreshDiff(), 5000)
+	}, [isResolving, threads, resolve, refreshDiff])
 
 	return (
 		<div className="app">
@@ -182,25 +194,21 @@ export function App() {
 				{!teacherIframeUrl ? (
 					<div className="diff-empty">Select a teacher from the dropdown above</div>
 				) : (
-					<iframe className="tab-iframe" src={teacherIframeUrl} />
+					<BrowserIframe src={teacherIframeUrl} />
 				)}
 			</main>
 
 			<main className="main" style={{ display: activeTab === 'students' ? undefined : 'none' }}>
-				{loadedTabs.has('students') && <iframe className="tab-iframe" src={buildIframeUrl('students')} />}
+				{loadedTabs.has('students') && <BrowserIframe src={buildIframeUrl('students')} />}
 			</main>
 
 			<main className="main" style={{ display: activeTab === 'api' ? undefined : 'none' }}>
-				{loadedTabs.has('api') && <iframe className="tab-iframe" src={buildIframeUrl('api')} />}
+				{loadedTabs.has('api') && <BrowserIframe src={buildIframeUrl('api')} />}
 			</main>
 
 			<ChatPanel
 				open={chatOpen}
 				onClose={() => setActivePanel(null)}
-				messages={chat.messages}
-				isProcessing={chat.isProcessing}
-				onSend={chat.send}
-				onClear={chat.clear}
 			/>
 
 			<BottomBar

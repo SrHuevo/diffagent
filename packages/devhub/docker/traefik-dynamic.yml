@@ -1,0 +1,13 @@
+http:
+  routers:
+    devhub:
+      rule: "!HostRegexp(`^.+\\.localhost$`) && PathPrefix(`/`)"
+      entrypoints:
+        - web
+      service: devhub
+      priority: 10000
+  services:
+    devhub:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3100"

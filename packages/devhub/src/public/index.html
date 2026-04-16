@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diluu Dev Hub</title>
+<style>
+	* { margin: 0; padding: 0; box-sizing: border-box; }
+	:root {
+		--bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
+		--text: #e6edf3; --text2: #8b949e; --accent: #58a6ff; --green: #3fb950;
+		--red: #f85149; --yellow: #d29922; --purple: #bc8cff;
+	}
+	body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px; max-width: 960px; margin: 0 auto; }
+	h1 { font-size: 20px; font-weight: 600; }
+	.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+	.header-actions { display: flex; gap: 8px; }
+	button { background: var(--bg3); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+	button:hover { background: var(--border); }
+	button.primary { background: #238636; border-color: #2ea043; }
+	button.primary:hover { background: #2ea043; }
+	button.danger { color: var(--red); }
+	button.danger:hover { background: rgba(248,81,73,0.1); }
+	button:disabled { opacity: 0.5; cursor: not-allowed; }
+	input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+	input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+	/* Pool bar */
+	.pool-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 20px; font-size: 13px; color: var(--text2); }
+	.pool-dot { width: 12px; height: 12px; border-radius: 50%; }
+	.pool-dot.free { background: var(--green); }
+	.pool-dot.active { background: var(--accent); }
+	.pool-dot.warming { background: var(--yellow); animation: pulse 1.5s infinite; }
+	.pool-dot.error { background: var(--red); }
+	@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+	/* New task form */
+	.new-task { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+	.new-task label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+	.new-task .field { flex: 1; min-width: 150px; }
+	.new-task input, .new-task select { width: 100%; }
+
+	/* Task cards */
+	.task-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+	.task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+	.task-name { font-weight: 600; font-size: 15px; }
+	.task-slot { font-size: 12px; color: var(--text2); }
+	.task-branch { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+	.task-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+	.task-actions { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
+	.task-tunnel { font-size: 11px; color: var(--text2); margin-top: 8px; word-break: break-all; }
+	.task-tunnel a { color: var(--accent); text-decoration: none; }
+
+	.btn-diffagent { background: var(--purple); border-color: var(--purple); color: white; }
+	.btn-diffagent:hover { opacity: 0.9; }
+	.vite-indicator { font-size: 10px; margin-left: 4px; }
+
+	/* Logs */
+	.logs { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 20px; max-height: 200px; overflow-y: auto; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; }
+	.log-entry { padding: 2px 0; color: var(--text2); }
+	.log-entry .ts { color: var(--text2); opacity: 0.6; }
+	.log-entry .slot { color: var(--accent); }
+
+	/* Modal */
+	.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
+	.modal-overlay.active { display: flex; }
+	.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 420px; max-width: 90vw; }
+	.modal h2 { font-size: 16px; margin-bottom: 16px; }
+	.modal .field { margin-bottom: 12px; }
+	.modal label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+	.modal input, .modal textarea { width: 100%; }
+	.modal textarea { min-height: 60px; resize: vertical; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: inherit; }
+	.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+	.empty { text-align: center; color: var(--text2); padding: 32px; font-size: 14px; }
+
+	/* Teacher picker */
+	.teacher-picker { position: relative; display: inline-block; }
+	.teacher-picker .tp-btn { min-width: 120px; text-align: left; }
+	.teacher-picker .tp-dropdown { display: none; position: absolute; top: 100%; left: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; width: 220px; max-height: 250px; overflow-y: auto; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+	.teacher-picker.open .tp-dropdown { display: block; }
+	.teacher-picker .tp-search { width: 100%; padding: 8px 10px; border: none; border-bottom: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
+	.teacher-picker .tp-item { padding: 6px 10px; cursor: pointer; font-size: 13px; }
+	.teacher-picker .tp-item:hover { background: var(--bg3); }
+	.teacher-picker .tp-item.master { color: var(--yellow); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+	<h1>Diluu Dev Hub</h1>
+	<div class="header-actions">
+		<button onclick="warmup()">Warmup Pool</button>
+		<button onclick="startTunnel()">Tunnel</button>
+	</div>
+</div>
+
+<div class="pool-bar" id="pool-bar"></div>
+
+<div class="new-task">
+	<div class="field">
+		<label>Task name</label>
+		<input type="text" id="task-name" placeholder="my-feature">
+	</div>
+	<div class="field">
+		<label>Base branch</label>
+		<select id="task-branch"></select>
+	</div>
+	<div class="field">
+		<label>DB backup</label>
+		<select id="task-backup"></select>
+	</div>
+	<button class="primary" onclick="createTask()" id="btn-create">Create</button>
+</div>
+
+<div id="tasks"></div>
+<div id="stopped-tasks"></div>
+
+<div class="logs" id="logs"></div>
+
+<!-- Finish Modal -->
+<div class="modal-overlay" id="finish-modal">
+	<div class="modal">
+		<h2>Finish Task</h2>
+		<p style="color:var(--text2);font-size:13px;margin-bottom:16px">Claude Code will commit all changes and merge into the base branch.</p>
+		<div class="modal-actions">
+			<button onclick="closeFinishModal()">Cancel</button>
+			<button class="primary" onclick="submitFinish()">Finish &amp; Merge</button>
+		</div>
+	</div>
+</div>
+
+<script>
+let state = { tasks: [], pool: { slots: {} }, tunnelUrl: null }
+let finishingTask = null
+
+// ─── API ───
+
+// Build URL without credentials (browser puts them in origin after Basic Auth)
+const apiBase = `${location.protocol}//${location.host}`
+
+async function api(method, path, body) {
+	const opts = { method, headers: { 'Content-Type': 'application/json' } }
+	if (body) opts.body = JSON.stringify(body)
+	const res = await fetch(`${apiBase}${path}`, opts)
+	return res.json()
+}
+
+// ─── SSE (with auto-reconnect) ───
+
+function refreshAll() {
+	refreshTasks()
+	refreshStoppedTasks()
+}
+
+function connectSSE() {
+	const events = new EventSource(`${apiBase}/api/events`)
+	events.addEventListener('message', (e) => {
+		try {
+			const event = JSON.parse(e.data)
+			if (event.type === 'pool-update') {
+				state.pool = event.data
+				renderPool()
+			}
+			if (event.type === 'task-update') {
+				refreshAll()
+			}
+			if (event.type === 'log') {
+				appendLog(event.data)
+			}
+			if (event.type === 'error') {
+				appendLog({ ts: new Date().toISOString(), message: `ERROR: ${event.data.error}`, slot: event.data.task })
+			}
+		} catch {}
+	})
+	events.onerror = () => {
+		events.close()
+		setTimeout(connectSSE, 3000)
+	}
+}
+connectSSE()
+
+// Also poll every 10s as fallback (SSE might not work through tunnel with Basic Auth)
+setInterval(refreshAll, 10000)
+
+// ─── Actions ───
+
+async function createTask() {
+	const name = document.getElementById('task-name').value.trim()
+	const branch = document.getElementById('task-branch').value
+	const backup = document.getElementById('task-backup').value
+	if (!name) return
+	const btn = document.getElementById('btn-create')
+	btn.disabled = true
+	btn.textContent = 'Creating...'
+	appendLog({ ts: new Date().toISOString(), message: `Creating task ${name}...` })
+	const body = { name, baseBranch: branch }
+	if (backup) body.backup = backup
+	await api('POST', '/api/tasks', body)
+	document.getElementById('task-name').value = ''
+	btn.disabled = false
+	btn.textContent = 'Create'
+	// Start polling for task to appear (activation is async)
+	const pollCreate = setInterval(async () => { await refreshAll(); const t = state.tasks; if (t.some(x => x.task === name)) clearInterval(pollCreate) }, 5000)
+}
+
+async function refreshBackups() {
+	await swr('backups', () => api('GET', '/api/backups'), renderBackups)
+}
+
+async function stopTaskAction(task) {
+	if (!confirm(`Stop ${task}?`)) return
+	appendLog({ ts: new Date().toISOString(), message: `Stopping ${task}...` })
+	await api('POST', `/api/tasks/${encodeURIComponent(task)}/stop`)
+	appendLog({ ts: new Date().toISOString(), message: `${task} stopped` })
+	await refreshTasks()
+}
+
+async function destroyTaskAction(taskOrSlot, isSlot = false) {
+	const label = taskOrSlot
+	if (!confirm(`DESTROY ${label}? This removes everything.`)) return
+	appendLog({ ts: new Date().toISOString(), message: `Destroying ${label}...` })
+	// Disable the button and show feedback inline
+	document.querySelectorAll('.danger').forEach(b => { b.disabled = true; b.textContent = 'Destroying...' })
+	const path = isSlot
+		? `/api/slots/${encodeURIComponent(taskOrSlot)}/destroy`
+		: `/api/tasks/${encodeURIComponent(taskOrSlot)}/destroy`
+	await api('POST', path)
+	appendLog({ ts: new Date().toISOString(), message: `${label} destroyed` })
+	await refreshTasks()
+}
+
+async function openFinishModal(task) {
+	finishingTask = task
+	document.getElementById('finish-modal').classList.add('active')
+}
+
+function closeFinishModal() {
+	document.getElementById('finish-modal').classList.remove('active')
+	finishingTask = null
+}
+
+async function submitFinish() {
+	if (!finishingTask) return
+	const btn = document.querySelector('.modal .primary')
+	if (btn) { btn.disabled = true; btn.textContent = 'Claude committing & merging...' }
+	appendLog({ ts: new Date().toISOString(), message: `Finishing ${finishingTask} (Claude is committing, then merging to base branch...)` })
+	closeFinishModal()
+	await api('POST', `/api/tasks/${encodeURIComponent(finishingTask)}/finish`, {})
+	if (btn) { btn.disabled = false; btn.textContent = 'Finish & Merge' }
+	appendLog({ ts: new Date().toISOString(), message: `${finishingTask} merged and destroyed` })
+	await refreshTasks()
+	await refreshStoppedTasks()
+}
+
+async function startDashboard(task, type) {
+	const btn = event.target
+	btn.disabled = true
+	btn.textContent = 'Starting...'
+	try {
+		await api('POST', `/api/tasks/${encodeURIComponent(task)}/vite/${type}`)
+		await refreshTasks()
+		const t = state.tasks.find(x => x.task === task)
+		if (t) window.open(taskUrl(t, type), '_blank')
+	} catch (err) {
+		appendLog({ ts: new Date().toISOString(), message: `Failed to start ${type}: ${err.message}`, slot: task })
+	}
+	btn.disabled = false
+}
+
+// ─── Teacher Picker ───
+
+let teacherCache = {} // task -> teachers[]  (in-memory mirror for filterTeachers)
+
+async function toggleTeacherPicker(task) {
+	const picker = document.getElementById(`tp-${task}`)
+	const isOpen = picker.classList.contains('open')
+
+	// Close all pickers
+	document.querySelectorAll('.teacher-picker.open').forEach(p => p.classList.remove('open'))
+	if (isOpen) return
+
+	picker.classList.add('open')
+	const search = picker.querySelector('.tp-search')
+	search.value = ''
+	search.focus()
+
+	// Instant paint from cache, then refresh in background
+	await swr(
+		`teachers:${task}`,
+		async () => {
+			const teachers = await api('GET', `/api/tasks/${encodeURIComponent(task)}/teachers`)
+			teachers.sort((a, b) => (b.god ? 1 : 0) - (a.god ? 1 : 0) || a.name.localeCompare(b.name))
+			return teachers
+		},
+		(teachers) => {
+			teacherCache[task] = teachers
+			renderTeacherList(task, teachers)
+		},
+	)
+}
+
+function filterTeachers(task, query) {
+	const teachers = teacherCache[task] || []
+	const q = query.toLowerCase()
+	const filtered = teachers.filter(t => t.name.toLowerCase().includes(q))
+	renderTeacherList(task, filtered)
+}
+
+function renderTeacherList(task, teachers) {
+	const picker = document.getElementById(`tp-${task}`)
+	const list = picker.querySelector('.tp-list')
+	list.innerHTML = teachers.map(t =>
+		`<div class="tp-item ${t.god ? 'master' : ''}" onclick="selectTeacher('${esc(task)}','${t.id}','${esc(t.name)}')">${esc(t.name)}${t.god ? ' ★' : ''}</div>`
+	).join('')
+}
+
+async function selectTeacher(task, teacherId, teacherName) {
+	// Close picker
+	document.querySelectorAll('.teacher-picker.open').forEach(p => p.classList.remove('open'))
+
+	const t = state.tasks.find(x => x.task === task)
+	if (!t) return
+
+	// Always ensure Vite is running (endpoint is idempotent, checks real container state)
+	appendLog({ ts: new Date().toISOString(), message: `Ensuring teachers dashboard is running...`, slot: task })
+	await api('POST', `/api/tasks/${encodeURIComponent(task)}/vite/teachers`)
+	await refreshTasks()
+
+	// Build impersonation URL
+	const appUrl = taskUrl(t, 'app')
+	const fakeUrl = `${appUrl}api/teachers-dashboard/fake?user=${teacherId}`
+	appendLog({ ts: new Date().toISOString(), message: `Impersonating ${teacherName}`, slot: task })
+	window.open(fakeUrl, '_blank')
+}
+
+// Close picker on click outside
+document.addEventListener('click', (e) => {
+	if (!e.target.closest('.teacher-picker')) {
+		document.querySelectorAll('.teacher-picker.open').forEach(p => p.classList.remove('open'))
+	}
+})
+
+async function resumeTaskAction(task) {
+	appendLog({ ts: new Date().toISOString(), message: `Resuming ${task}...` })
+	await api('POST', `/api/tasks/${encodeURIComponent(task)}/resume`)
+	await refreshTasks()
+	await refreshStoppedTasks()
+}
+
+async function destroyStoppedAction(task) {
+	if (!confirm(`DESTROY stopped task ${task}?`)) return
+	appendLog({ ts: new Date().toISOString(), message: `Destroying ${task}...` })
+	await api('POST', `/api/tasks/${encodeURIComponent(task)}/destroy`)
+	await refreshStoppedTasks()
+}
+
+async function refreshStoppedTasks() {
+	const stopped = await api('GET', '/api/tasks/stopped')
+	const container = document.getElementById('stopped-tasks')
+	if (!stopped.length) { container.innerHTML = ''; return }
+	container.innerHTML = '<h3 style="color:var(--text2);font-size:13px;margin:16px 0 8px">Stopped</h3>' +
+		stopped.map(t => `
+		<div class="task-card" style="opacity:0.7">
+			<div class="task-header">
+				<span class="task-name">${esc(t.task)}</span>
+				<span class="task-slot">${t.slot}</span>
+			</div>
+			<div class="task-branch">Base: ${esc(t.baseBranch || '')}</div>
+			<div class="task-actions">
+				<button class="primary" onclick="resumeTaskAction('${esc(t.task)}')">Resume</button>
+				<button class="danger" onclick="destroyStoppedAction('${esc(t.task)}')">Destroy</button>
+			</div>
+		</div>
+	`).join('')
+}
+
+async function warmup() {
+	await api('POST', '/api/warmup')
+}
+
+async function startTunnel() {
+	const result = await api('GET', '/api/tunnel')
+	if (result.url) {
+		state.tunnelUrl = result.url
+		refreshTasks()
+		appendLog({ ts: new Date().toISOString(), message: `Tunnel: ${result.url}` })
+	}
+}
+
+// ─── Rendering ───
+
+function renderPool() {
+	const bar = document.getElementById('pool-bar')
+	const slots = state.pool.slots || {}
+	const entries = Object.entries(slots).sort()
+	const free = entries.filter(([,v]) => v.status === 'free').length
+	const total = entries.length
+	bar.innerHTML = entries.map(([name, info]) =>
+		`<div class="pool-dot ${info.status}" title="${name}: ${info.status}${info.task ? ' → ' + info.task : ''}"></div>`
+	).join('') + `<span>${free}/${total} available</span>`
+}
+
+function isRemote() {
+	return !location.hostname.endsWith('localhost') && location.hostname !== '127.0.0.1'
+}
+
+function taskUrl(t, key) {
+	if (!isRemote()) return t.urls[key]
+	const tunnelKey = 'tunnel' + key.charAt(0).toUpperCase() + key.slice(1)
+	return t.urls[tunnelKey] || t.urls[key]
+}
+
+function renderTasks() {
+	const container = document.getElementById('tasks')
+	if (state.tasks.length === 0) {
+		container.innerHTML = '<div class="empty">No active tasks. Create one above.</div>'
+		return
+	}
+	container.innerHTML = state.tasks.map(t => {
+		const diffagentUrl = taskUrl(t, 'diffagent')
+		const studentsUrl = taskUrl(t, 'students')
+		const appUrl = taskUrl(t, 'app')
+		const taskId = esc(t.task)
+		return `
+		<div class="task-card">
+			<div class="task-header">
+				<span class="task-name">${taskId}</span>
+				<span class="task-slot">${t.slot}</span>
+			</div>
+			<div class="task-branch">Base: ${esc(t.baseBranch)}</div>
+			<div class="task-buttons">
+				<button class="btn-diffagent" onclick="window.open('${diffagentUrl}','_blank')">DiffAgent</button>
+				<div class="teacher-picker" id="tp-${taskId}">
+					<button class="tp-btn" onclick="toggleTeacherPicker('${taskId}')">
+						Teachers ${t.viteTeachers ? '<span class="vite-indicator" style="color:var(--green)">●</span>' : '<span class="vite-indicator">▶</span>'}
+					</button>
+					<div class="tp-dropdown">
+						<input class="tp-search" placeholder="Search teacher..." oninput="filterTeachers('${taskId}', this.value)">
+						<div class="tp-list"></div>
+					</div>
+				</div>
+				<button onclick="${t.viteStudents ? `window.open('${studentsUrl}','_blank')` : `startDashboard('${taskId}','students')`}">
+					Students ${t.viteStudents ? '<span class="vite-indicator" style="color:var(--green)">●</span>' : '<span class="vite-indicator">▶</span>'}
+				</button>
+				<button onclick="window.open('${appUrl}health','_blank')">API</button>
+			</div>
+			<div class="task-actions">
+				<button onclick="stopTaskAction('${esc(t.task)}')" ${t.task ? '' : 'disabled'}>Stop</button>
+				<button class="danger" onclick="destroyTaskAction('${esc(t.task || t.slot)}', ${t.task ? 'false' : 'true'})">Destroy</button>
+				<button onclick="openFinishModal('${esc(t.task)}')" ${t.task ? '' : 'disabled'}>Finish</button>
+			</div>
+		</div>
+	`}).join('')
+}
+
+function appendLog(data) {
+	const logs = document.getElementById('logs')
+	const time = new Date(data.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+	const slot = data.slot ? `<span class="slot">[${esc(data.slot)}]</span> ` : ''
+	logs.innerHTML += `<div class="log-entry"><span class="ts">${time}</span> ${slot}${esc(data.message)}</div>`
+	logs.scrollTop = logs.scrollHeight
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;') }
+
+// ─── Initial Load ───
+
+// ─── Stale-while-revalidate cache (localStorage) ───
+
+function cacheRead(key) {
+	try {
+		const raw = localStorage.getItem(`cache:${key}`)
+		return raw ? JSON.parse(raw) : null
+	} catch {
+		return null
+	}
+}
+
+function cacheWrite(key, value) {
+	try { localStorage.setItem(`cache:${key}`, JSON.stringify(value)) } catch {}
+}
+
+// Call `render(data)` immediately with any cached value, then fetch fresh
+// and call `render(data)` again with the new value (persisting to cache).
+async function swr(key, fetcher, render) {
+	const cached = cacheRead(key)
+	if (cached !== null) render(cached)
+	try {
+		const fresh = await fetcher()
+		cacheWrite(key, fresh)
+		render(fresh)
+	} catch {}
+}
+
+function renderBranches(branches) {
+	document.getElementById('task-branch').innerHTML = branches.map(b =>
+		`<option value="${esc(b.name)}">${esc(b.name)}${b.pinned ? ' ★' : ''}</option>`
+	).join('')
+}
+
+function renderBackups(backups) {
+	const options = [{ value: '', label: 'Default (warmed)' }]
+	for (const b of backups) {
+		const date = new Date(b.mtime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+		options.push({ value: b.name, label: `${b.name} — ${date}` })
+	}
+	document.getElementById('task-backup').innerHTML =
+		options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')
+}
+
+async function refreshTasks() {
+	// Tasks are rendered live (SSE + polling). Cache is only for the instant-on first paint.
+	await swr('tasks', () => api('GET', '/api/tasks'), (data) => {
+		state.tasks = data
+		renderTasks()
+	})
+}
+
+async function loadBranches() {
+	await swr('branches', () => api('GET', '/api/branches'), renderBranches)
+}
+
+async function init() {
+	const poolData = await api('GET', '/api/pool')
+	state.pool = poolData
+	renderPool()
+	// All of these paint from cache instantly (if present) and refresh in background.
+	loadBranches()
+	refreshBackups()
+	refreshTasks()
+	refreshStoppedTasks()
+}
+
+init()
+
+// Submit on Enter in task name
+document.getElementById('task-name').addEventListener('keydown', (e) => {
+	if (e.key === 'Enter') createTask()
+})
+</script>
+</body>
+</html>

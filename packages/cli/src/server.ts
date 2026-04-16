@@ -10,7 +10,6 @@ import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { parseDiff, type ParsedDiff } from '@diffagent/parser';
-import { handleClaudeRoutes } from './claude-routes.js';
 import { handleChatRoutes } from './chat-routes.js';
 import {
   getDiff,
@@ -629,11 +628,7 @@ export function startServer(options: ServerOptions): Promise<ServerResult> {
           return;
         }
 
-        if (handleChatRoutes(req, res, pathname, process.cwd())) {
-          return;
-        }
-
-        if (handleClaudeRoutes(req, res, pathname, process.cwd())) {
+        if (handleChatRoutes(req, res, pathname)) {
           return;
         }
 
