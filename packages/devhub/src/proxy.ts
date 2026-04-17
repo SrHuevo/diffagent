@@ -293,6 +293,42 @@ export async function tryProxy(req: IncomingMessage, res: ServerResponse): Promi
 		}
 	}
 
+	// Intercept fake login: the backend returns a 302 with internal host in
+	// Location. Instead of trying to rewrite the header (fragile), we handle
+	// the redirect ourselves: proxy the request, grab cookies, and redirect
+	// to the correct tunnel URL.
+	const pathAfterStrip = url.pathname.slice(target.stripPrefix.length) || '/'
+	if (pathAfterStrip.startsWith('/api/teachers-dashboard/fake')) {
+		const originalHost = req.headers.host || ''
+		const isTunnel = originalHost.includes('trycloudflare.com') || originalHost.includes('.ts.net') || originalHost.includes('ngrok')
+		const proto = isTunnel ? 'https' : 'http'
+		const taskSafe = url.pathname.split('/').filter(Boolean)[0]
+
+		const backendReq = http.request({
+			hostname: '127.0.0.1', port: 80,
+			path: `${pathAfterStrip}${url.search}`,
+			method: req.method,
+			headers: { ...req.headers, host: target.host },
+		}, (backendRes) => {
+			const cookies = backendRes.headers['set-cookie'] || []
+			const cookieArr = Array.isArray(cookies) ? cookies : [cookies]
+			const fixedCookies = isTunnel
+				? cookieArr.map(c => c.replace(/SameSite=\w+/i, 'SameSite=None; Secure'))
+				: cookieArr
+			res.writeHead(302, {
+				'Location': `${proto}://${originalHost}/${taskSafe}/teachers/`,
+				'Set-Cookie': fixedCookies,
+			})
+			res.end()
+		})
+		backendReq.on('error', () => {
+			res.writeHead(502, { 'Content-Type': 'text/plain' })
+			res.end('Fake login proxy error')
+		})
+		req.pipe(backendReq)
+		return true
+	}
+
 	// SPA sub-paths need trailing slash for relative asset resolution
 	// e.g. /remote/teachers -> /remote/teachers/
 	const parts = url.pathname.split('/').filter(Boolean)
