@@ -54,13 +54,15 @@ export async function warmupSlot(slot: string): Promise<void> {
 		'VITE_LESSONS_LINKS_API_URL=/api/teachers-dashboard\n',
 	)
 
-	// 4. Claude Code session (credentials bind-mounted from host, not copied)
+	// 4. Claude Code session — credentials are COPIED (not bind-mounted as a
+	// separate file) so atomic-replace writes propagate through the dir mount.
 	const claudeDst = resolve(worktreePath, '.claude-session')
 	if (!existsSync(claudeDst)) {
 		mkdirSync(claudeDst, { recursive: true })
 		const home = process.env.HOME || process.env.USERPROFILE || ''
 		copyIfExists(resolve(home, '.claude/settings.json'), resolve(claudeDst, 'settings.json'))
 		copyIfExists(resolve(home, '.claude/stats-cache.json'), resolve(claudeDst, 'stats-cache.json'))
+		copyIfExists(resolve(home, '.claude/.credentials.json'), resolve(claudeDst, '.credentials.json'))
 		copyIfExists(resolve(home, '.claude.json'), resolve(claudeDst, '.claude.json'))
 
 		// Rewrite mcpServers.*.command so Windows-only paths (e.g. C:\...\uvx.exe)

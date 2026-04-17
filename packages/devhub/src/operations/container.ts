@@ -213,12 +213,13 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		'-v', 'diluu-bun-cache:/root/.bun/install/cache',
 		'-v', `${wgd}:/app/.worktree-git:ro`,
 		'-v', `${mgd}:/main-git:ro`,
-		// Claude Code session (needed for DiffAgent to spawn claude)
+		// Claude Code session — the entire .claude-session dir is mounted as
+		// /root/.claude and /home/dev/.claude. Credentials live INSIDE the dir
+		// mount (not as a separate file mount) so atomic-replace writes from
+		// Claude's token refresh are visible to the host and vice versa.
 		'-v', `${wp}/.claude-session:/root/.claude`,
-		'-v', `${credentials}:/root/.claude/.credentials.json`,
 		'-v', `${wp}/.claude-session/.claude.json:/root/.claude.json`,
 		'-v', `${wp}/.claude-session:/home/dev/.claude`,
-		'-v', `${credentials}:/home/dev/.claude/.credentials.json`,
 		'-v', `${wp}/.claude-session/.claude.json:/home/dev/.claude.json`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and

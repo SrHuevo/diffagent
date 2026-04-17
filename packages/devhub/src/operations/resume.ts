@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+import { copyFileSync } from 'node:fs'
 import { config } from '../config.js'
 import { pool } from '../pool.js'
 import { dkr, sanitizeBranch, sleep } from '../docker.js'
@@ -20,6 +22,14 @@ export async function resumeTask(task: string): Promise<TaskView> {
 
 	eventBus.log(`Resuming from ${slot}...`, task)
 	pool.setSlot(slot, 'active', task, baseBranch)
+
+	// Refresh credentials before recreating the container
+	const home = process.env.HOME || process.env.USERPROFILE || ''
+	const worktreePath = resolve(config.worktreesDir, slot)
+	try {
+		copyFileSync(resolve(home, '.claude/.credentials.json'), resolve(worktreePath, '.claude-session/.credentials.json'))
+		copyFileSync(resolve(home, '.claude.json'), resolve(worktreePath, '.claude-session/.claude.json'))
+	} catch {}
 
 	// Start MongoDB
 	eventBus.log('Starting MongoDB...', task)

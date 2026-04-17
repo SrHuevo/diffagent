@@ -25,10 +25,11 @@ export async function activateTask(
 
 	eventBus.log(`Activating from ${slot}...`, task)
 
-	// 1. Mark active + refresh session files
+	// 1. Mark active + refresh session files (including credentials)
 	pool.setSlot(slot, 'active', task, baseBranch)
 	try {
 		copyFileSync(resolve(home, '.claude.json'), resolve(worktreePath, '.claude-session/.claude.json'))
+		copyFileSync(resolve(home, '.claude/.credentials.json'), resolve(worktreePath, '.claude-session/.credentials.json'))
 	} catch {}
 
 	// 2. Create branch (.git already has correct gitdir from warmup)
