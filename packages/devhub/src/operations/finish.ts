@@ -37,7 +37,7 @@ export async function finishTask(
 	await new Promise<void>((resolve) => {
 		const body = JSON.stringify({ message: claudePrompt })
 		const req = http.request({
-			hostname: 'host.docker.internal',
+			hostname: '127.0.0.1',
 			port: 80,
 			path: `/${encodeURIComponent(task)}/diffagent/api/chat/inject`,
 			method: 'POST',
