@@ -47,16 +47,18 @@ async function reviveStaleContainers() {
 		if (info.status !== 'active') continue
 		try {
 			const status = await dkr('inspect', `app-${slot}`, '--format', '{{.State.Status}}')
-			if (status.trim() === 'running') continue
-			eventBus.log(`Reviving stopped container app-${slot} (${info.task})`)
-			await dkr('start', `app-${slot}`)
-			try {
-				const mongoStatus = await dkr('inspect', `mongo-${slot}`, '--format', '{{.State.Status}}')
-				if (mongoStatus.trim() !== 'running') await dkr('start', `mongo-${slot}`)
-			} catch {}
-		} catch {
-			// Container doesn't exist at all — leave alone, it's an orphan slot
-		}
+			if (status.trim() !== 'running') {
+				eventBus.log(`Reviving stopped container app-${slot} (${info.task})`)
+				await dkr('start', `app-${slot}`)
+			}
+		} catch {}
+		try {
+			const mongoStatus = await dkr('inspect', `mongo-${slot}`, '--format', '{{.State.Status}}')
+			if (mongoStatus.trim() !== 'running') {
+				eventBus.log(`Reviving stopped mongo-${slot}`)
+				await dkr('start', `mongo-${slot}`)
+			}
+		} catch {}
 	}
 }
 
