@@ -5,31 +5,24 @@ import { sendJson, sendError, readBody } from './http-utils.js'
 const TMUX_SESSION = 'claude'
 
 /**
- * Paste `text` into the running tmux session's Claude Code prompt and press
- * Enter. `tmux load-buffer -` accepts the payload on stdin so arbitrary
- * multi-line content (including special shell characters) is safe.
+ * Send literal text to the Claude tmux session via `send-keys -l`, then Enter.
+ * Multi-line prompts are joined into a single line (Claude's Ink TUI treats
+ * newlines in the input field as submit, so we flatten to spaces).
  *
- * DiffAgent runs as root; the tmux server lives under user 'dev' (claude
- * refuses --dangerously-skip-permissions as root) — so every tmux call is
- * wrapped in `su dev -c`.
+ * DiffAgent runs as root; the tmux server lives under user 'dev' — so every
+ * tmux call runs via `su dev -c`.
  */
-function tmuxAsDev(args: string[], stdin?: string): Promise<void> {
+function tmuxSendKeys(text: string): Promise<void> {
+	const flat = text.replace(/\n/g, ' ').replace(/'/g, "'\\''")
+	const cmd = `tmux send-keys -t ${TMUX_SESSION} -l '${flat}' \\; send-keys -t ${TMUX_SESSION} Enter`
 	return new Promise((resolve, reject) => {
-		const cmd = ['tmux', ...args.map((a) => `'${a.replace(/'/g, `'\\''`)}'`)].join(' ')
 		const p = spawn('su', ['dev', '-c', cmd])
-		if (stdin != null) p.stdin.end(stdin)
 		p.on('error', reject)
 		p.on('exit', (code) => {
 			if (code === 0) resolve()
-			else reject(new Error(`su dev -c "${cmd}" exited ${code}`))
+			else reject(new Error(`tmux send-keys exited ${code}`))
 		})
 	})
-}
-
-async function injectIntoClaudeSession(text: string): Promise<void> {
-	await tmuxAsDev(['load-buffer', '-b', 'inject', '-'], text)
-	await tmuxAsDev(['paste-buffer', '-b', 'inject', '-d', '-t', TMUX_SESSION])
-	await tmuxAsDev(['send-keys', '-t', TMUX_SESSION, 'Enter'])
 }
 
 export function handleChatRoutes(
@@ -45,7 +38,7 @@ export function handleChatRoutes(
 				if (typeof message !== 'string' || !message) {
 					return sendError(res, 400, 'message (string) required')
 				}
-				await injectIntoClaudeSession(message)
+				await tmuxSendKeys(message)
 				sendJson(res, { ok: true })
 			})
 			.catch((err) => sendError(res, 500, err.message))
