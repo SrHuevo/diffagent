@@ -10,6 +10,8 @@ import { eventBus } from '../events.js'
 import { destroyTask } from './destroy.js'
 import type { TaskFinishRequest } from '../types.js'
 
+const GIT_EXCLUDE = "':!.claude-session' ':!.gitfile-docker' ':!.diffagent-chat.json' ':!.logs' ':!nul'"
+
 export async function finishTask(
 	task: string,
 	opts: TaskFinishRequest,
@@ -25,17 +27,24 @@ export async function finishTask(
 
 	eventBus.log('Finishing...', task)
 
-	// Step 1: Ask Claude to commit all changes with a good message.
-	// The inject pastes the prompt into the live tmux claude session.
+	// Ensure git can operate in the worktree
+	try {
+		writeFileSync(resolve(worktreePath, '.git'), `gitdir: ${toUnixPath(worktreeGitDir)}\n`)
+	} catch {}
+	const gitOpts = { cwd: worktreePath, encoding: 'utf8' as const, timeout: 30000 }
+
+	// Set git identity (WSL worktrees don't inherit the host config)
+	try {
+		execSync('git config user.name "Daniel Garoz"', gitOpts)
+		execSync('git config user.email "heyspanishuk@gmail.com"', gitOpts)
+	} catch {}
+
+	// Remove Windows artifacts that break git add
+	try { execSync('git rm -f nul 2>/dev/null || rm -f nul', { ...gitOpts, shell: 'bash' }) } catch {}
+
+	// Step 1: Inject a direct, imperative prompt into Claude's terminal
 	eventBus.log('Asking Claude to prepare changes...', task)
-	const claudePrompt = [
-		`Prepara los cambios de esta rama (${task}) para mergear a ${baseBranch}:`,
-		`1. Revisa los cambios con git diff --stat y git status`,
-		`2. Haz git add -A`,
-		`3. Escribe un mensaje de commit descriptivo en inglés e imperativo que resuma todos los cambios`,
-		`4. Haz git commit con ese mensaje`,
-		`Muestra un resumen de lo que commiteaste.`,
-	].join('\n')
+	const claudePrompt = `Haz lo siguiente SIN preguntar ni pedir confirmación: 1) git add -A 2) git commit con un mensaje descriptivo en inglés imperativo que resuma los cambios 3) Muestra el resultado de git log --oneline -1`
 
 	try {
 		await new Promise<void>((resolve, reject) => {
@@ -69,19 +78,13 @@ export async function finishTask(
 		})
 		eventBus.log('Prompt injected into Claude terminal', task)
 	} catch (err: any) {
-		eventBus.log(`Inject failed: ${err.message} — continuing without Claude commit`, task)
+		eventBus.log(`Inject failed: ${err.message} — continuing with host fallback`, task)
 	}
 
-	// Wait for Claude to commit — poll git status every 5s, up to 120s.
-	// If the worktree becomes clean early, proceed immediately.
-	try {
-		writeFileSync(resolve(worktreePath, '.git'), `gitdir: ${toUnixPath(worktreeGitDir)}\n`)
-	} catch {}
-	const gitOpts = { cwd: worktreePath, encoding: 'utf8' as const, timeout: 30000 }
-
+	// Step 2: Poll git status — wait for Claude to commit or detect stuck
 	const hasDirtyFiles = () => {
 		try {
-			return execSync('git status --porcelain -- . ":!.claude-session" ":!.gitfile-docker" ":!.diffagent-chat.json" ":!.logs"', gitOpts).trim().length > 0
+			return execSync(`git status --porcelain -- . ${GIT_EXCLUDE}`, gitOpts).trim().length > 0
 		} catch { return false }
 	}
 
@@ -96,7 +99,7 @@ export async function finishTask(
 		eventBus.log('Waiting for Claude to commit (polling every 5s, max 300s)...', task)
 		let lastHash = await capturePaneHash()
 		let staleCount = 0
-		const STALE_THRESHOLD = 4 // 4 × 5s = 20s unchanged → stuck
+		const STALE_THRESHOLD = 4
 
 		for (let i = 0; i < 60; i++) {
 			await sleep(5000)
@@ -124,26 +127,26 @@ export async function finishTask(
 		eventBus.log('No uncommitted changes — nothing to commit', task)
 	}
 
-	// Host fallback: commit remaining changes if Claude didn't finish
+	// Step 3: Host fallback — commit whatever Claude didn't
 	try {
-		const status = execSync('git status --porcelain', gitOpts).trim()
+		const status = execSync(`git status --porcelain -- . ${GIT_EXCLUDE}`, gitOpts).trim()
 		if (status) {
 			eventBus.log('Host fallback: committing remaining changes...', task)
-			execSync("git add -A -- ':!.claude-session' ':!.gitfile-docker' ':!.diffagent-chat.json' ':!.logs'", gitOpts)
+			execSync(`git add -A -- . ${GIT_EXCLUDE}`, gitOpts)
 			execSync(`git commit -m "chore: prepare ${task} for merge"`, gitOpts)
 		}
 	} catch (err: any) {
 		eventBus.log(`Host commit fallback: ${err.message?.substring(0, 120)}`, task)
 	}
 
-	// Step 3: Merge task branch into base branch — only if worktree is clean.
-	const remaining = execSync('git status --porcelain -- . ":!.claude-session" ":!.gitfile-docker" ":!.diffagent-chat.json" ":!.logs"', gitOpts).trim()
+	// Step 4: Merge — only if worktree is clean
+	const remaining = execSync(`git status --porcelain -- . ${GIT_EXCLUDE}`, gitOpts).trim()
 	if (remaining) {
 		eventBus.log(`Aborting merge: ${remaining.split('\n').length} uncommitted file(s) remain. Commit them first.`, task)
 		return { prUrl: '' }
 	}
 
-	eventBus.log(`Merging ${task} into ${baseBranch}...`, task)
+	eventBus.log(`Pushing ${task} to ${baseBranch}...`, task)
 	try {
 		execSync(`git push origin HEAD:${baseBranch}`, { ...gitOpts, timeout: 60000 })
 		eventBus.log(`Pushed to ${baseBranch}`, task)
@@ -156,7 +159,7 @@ export async function finishTask(
 		writeFileSync(resolve(worktreePath, '.gitfile-docker'), 'gitdir: /tmp/git-worktree\n')
 	} catch {}
 
-	// Step 4: Destroy task
+	// Step 5: Destroy task
 	try {
 		await destroyTask(task)
 	} catch (err: any) {
