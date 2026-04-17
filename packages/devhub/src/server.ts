@@ -154,6 +154,18 @@ const routes: Route[] = [
 		}
 	}),
 
+	// Restart task (stop + resume in one click)
+	route('POST', '/api/tasks/:task/restart', async (_req, res, { task }) => {
+		sendJson(res, 202, { message: 'Restarting...' })
+		try {
+			await stopTask(task)
+			await resumeTask(task)
+		} catch (err: any) {
+			console.error(`[RESTART ERROR] ${task}:`, err)
+			eventBus.log(`Restart failed: ${err.message}`, task)
+		}
+	}),
+
 	// Destroy task
 	route('POST', '/api/tasks/:task/destroy', async (_req, res, { task }) => {
 		sendJson(res, 202, { message: 'Destroying...' })

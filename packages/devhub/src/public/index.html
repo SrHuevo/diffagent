@@ -216,6 +216,12 @@ async function stopTaskAction(task) {
 	await refreshTasks()
 }
 
+async function restartTaskAction(task) {
+	appendLog({ ts: new Date().toISOString(), message: `Restarting ${task}...` })
+	await api('POST', `/api/tasks/${encodeURIComponent(task)}/restart`)
+	appendLog({ ts: new Date().toISOString(), message: `${task} restarting (takes ~30s)` })
+}
+
 async function destroyTaskAction(taskOrSlot, isSlot = false) {
 	const label = taskOrSlot
 	if (!confirm(`DESTROY ${label}? This removes everything.`)) return
@@ -454,6 +460,7 @@ function renderTasks() {
 				<button onclick="window.open('${appUrl}health','_blank')">API</button>
 			</div>
 			<div class="task-actions">
+				<button onclick="restartTaskAction('${esc(t.task)}')" ${t.task ? '' : 'disabled'}>Restart</button>
 				<button onclick="stopTaskAction('${esc(t.task)}')" ${t.task ? '' : 'disabled'}>Stop</button>
 				<button class="danger" onclick="destroyTaskAction('${esc(t.task || t.slot)}', ${t.task ? 'false' : 'true'})">Destroy</button>
 				<button onclick="openFinishModal('${esc(t.task)}')" ${t.task ? '' : 'disabled'}>Finish</button>
