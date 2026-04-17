@@ -38,6 +38,13 @@ git config --global --add safe.directory '*'
 mkdir -p /app/.logs
 chown -R dev:dev /app 2>/dev/null || true
 
+# Copy host credentials into the session dir so Claude can authenticate.
+# The source is a read-only mount at /opt/claude-creds.json from the host.
+if [ -f /opt/claude-creds.json ] && [ -s /opt/claude-creds.json ]; then
+	cp /opt/claude-creds.json /home/dev/.claude/.credentials.json 2>/dev/null || true
+	chown dev:dev /home/dev/.claude/.credentials.json 2>/dev/null || true
+fi
+
 # Install restart helpers so Claude Code inside the container can bounce services
 cat > /usr/local/bin/restart-backend <<'EOF'
 #!/bin/bash
@@ -221,6 +228,9 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		'-v', `${wp}/.claude-session/.claude.json:/root/.claude.json`,
 		'-v', `${wp}/.claude-session:/home/dev/.claude`,
 		'-v', `${wp}/.claude-session/.claude.json:/home/dev/.claude.json`,
+		// Host credentials mounted read-only; the entrypoint copies them into
+		// the writable session dir so Claude can authenticate on every restart.
+		'-v', `${credentials}:/opt/claude-creds.json:ro`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and
 		// its package.json (read by the bundle via require('../package.json'))

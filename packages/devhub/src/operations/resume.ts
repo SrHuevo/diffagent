@@ -27,8 +27,11 @@ export async function resumeTask(task: string): Promise<TaskView> {
 	const home = process.env.HOME || process.env.USERPROFILE || ''
 	const worktreePath = resolve(config.worktreesDir, slot)
 	try {
-		copyFileSync(resolve(home, '.claude/.credentials.json'), resolve(worktreePath, '.claude-session/.credentials.json'))
-		copyFileSync(resolve(home, '.claude.json'), resolve(worktreePath, '.claude-session/.claude.json'))
+		const { mkdirSync } = await import('node:fs')
+		const sessionDir = resolve(worktreePath, '.claude-session')
+		mkdirSync(sessionDir, { recursive: true })
+		copyFileSync(resolve(home, '.claude/.credentials.json'), resolve(sessionDir, '.credentials.json'))
+		copyFileSync(resolve(home, '.claude.json'), resolve(sessionDir, '.claude.json'))
 	} catch {}
 
 	// Start MongoDB
