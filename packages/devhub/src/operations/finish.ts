@@ -1,10 +1,11 @@
 import { resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import http from 'node:http'
 import { execSync } from 'node:child_process'
 import { config } from '../config.js'
 import { pool } from '../pool.js'
-import { sanitizeBranch, toUnixPath, sleep } from '../docker.js'
+import { sanitizeBranch, toUnixPath, sleep, dkr } from '../docker.js'
 import { eventBus } from '../events.js'
 import { destroyTask } from './destroy.js'
 import type { TaskFinishRequest } from '../types.js'
@@ -83,14 +84,39 @@ export async function finishTask(
 		catch { return false }
 	}
 
+	const capturePaneHash = async (): Promise<string> => {
+		try {
+			const pane = await dkr('exec', '-u', 'dev', `app-${slot}`, 'tmux', 'capture-pane', '-t', 'claude', '-p')
+			return createHash('md5').update(pane).digest('hex')
+		} catch { return '' }
+	}
+
 	if (hasDirtyFiles()) {
 		eventBus.log('Waiting for Claude to commit (polling every 5s, max 120s)...', task)
+		let lastHash = await capturePaneHash()
+		let staleCount = 0
+		const STALE_THRESHOLD = 4 // 4 × 5s = 20s unchanged → stuck
+
 		for (let i = 0; i < 24; i++) {
 			await sleep(5000)
+
 			if (!hasDirtyFiles()) {
 				eventBus.log('Worktree clean — Claude committed', task)
 				break
 			}
+
+			const hash = await capturePaneHash()
+			if (hash && hash === lastHash) {
+				staleCount++
+				if (staleCount >= STALE_THRESHOLD) {
+					eventBus.log('Claude appears stuck (terminal unchanged for 20s) — proceeding with fallback', task)
+					break
+				}
+			} else {
+				staleCount = 0
+				lastHash = hash
+			}
+
 			if (i === 23) eventBus.log('Timeout waiting for Claude to commit', task)
 		}
 	} else {
