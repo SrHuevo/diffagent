@@ -71,17 +71,33 @@ export async function finishTask(
 		eventBus.log(`Inject failed: ${err.message} — continuing without Claude commit`, task)
 	}
 
-	// Give Claude time to actually commit before we try to merge
-	eventBus.log('Waiting 90s for Claude to commit...', task)
-	await sleep(90000)
-
-	// Step 2: Commit any remaining uncommitted changes from the host
-	// (fallback in case Claude didn't commit or had auth issues).
+	// Wait for Claude to commit — poll git status every 5s, up to 120s.
+	// If the worktree becomes clean early, proceed immediately.
 	try {
 		writeFileSync(resolve(worktreePath, '.git'), `gitdir: ${toUnixPath(worktreeGitDir)}\n`)
 	} catch {}
-
 	const gitOpts = { cwd: worktreePath, encoding: 'utf8' as const, timeout: 30000 }
+
+	const hasDirtyFiles = () => {
+		try { return execSync('git status --porcelain', gitOpts).trim().length > 0 }
+		catch { return false }
+	}
+
+	if (hasDirtyFiles()) {
+		eventBus.log('Waiting for Claude to commit (polling every 5s, max 120s)...', task)
+		for (let i = 0; i < 24; i++) {
+			await sleep(5000)
+			if (!hasDirtyFiles()) {
+				eventBus.log('Worktree clean — Claude committed', task)
+				break
+			}
+			if (i === 23) eventBus.log('Timeout waiting for Claude to commit', task)
+		}
+	} else {
+		eventBus.log('No uncommitted changes — nothing to commit', task)
+	}
+
+	// Host fallback: commit remaining changes if Claude didn't finish
 	try {
 		const status = execSync('git status --porcelain', gitOpts).trim()
 		if (status) {
