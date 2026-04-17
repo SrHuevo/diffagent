@@ -80,8 +80,9 @@ export async function finishTask(
 	const gitOpts = { cwd: worktreePath, encoding: 'utf8' as const, timeout: 30000 }
 
 	const hasDirtyFiles = () => {
-		try { return execSync('git status --porcelain', gitOpts).trim().length > 0 }
-		catch { return false }
+		try {
+			return execSync('git status --porcelain -- . ":!.claude-session" ":!.gitfile-docker" ":!.diffagent-chat.json" ":!.logs"', gitOpts).trim().length > 0
+		} catch { return false }
 	}
 
 	const capturePaneHash = async (): Promise<string> => {
@@ -128,7 +129,7 @@ export async function finishTask(
 		const status = execSync('git status --porcelain', gitOpts).trim()
 		if (status) {
 			eventBus.log('Host fallback: committing remaining changes...', task)
-			execSync('git add -A', gitOpts)
+			execSync("git add -A -- ':!.claude-session' ':!.gitfile-docker' ':!.diffagent-chat.json' ':!.logs'", gitOpts)
 			execSync(`git commit -m "chore: prepare ${task} for merge"`, gitOpts)
 		}
 	} catch (err: any) {
@@ -136,7 +137,7 @@ export async function finishTask(
 	}
 
 	// Step 3: Merge task branch into base branch — only if worktree is clean.
-	const remaining = execSync('git status --porcelain', gitOpts).trim()
+	const remaining = execSync('git status --porcelain -- . ":!.claude-session" ":!.gitfile-docker" ":!.diffagent-chat.json" ":!.logs"', gitOpts).trim()
 	if (remaining) {
 		eventBus.log(`Aborting merge: ${remaining.split('\n').length} uncommitted file(s) remain. Commit them first.`, task)
 		return { prUrl: '' }
