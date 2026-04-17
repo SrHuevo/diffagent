@@ -248,15 +248,18 @@ function closeFinishModal() {
 
 async function submitFinish() {
 	if (!finishingTask) return
+	const task = finishingTask
 	const btn = document.querySelector('.modal .primary')
 	if (btn) { btn.disabled = true; btn.textContent = 'Claude committing & merging...' }
-	appendLog({ ts: new Date().toISOString(), message: `Finishing ${finishingTask} (Claude is committing, then merging to base branch...)` })
+	appendLog({ ts: new Date().toISOString(), message: `Finishing ${task} — injecting prompt, then polling (up to 5 min). Watch the log for progress.` })
 	closeFinishModal()
-	await api('POST', `/api/tasks/${encodeURIComponent(finishingTask)}/finish`, {})
+	try {
+		await api('POST', `/api/tasks/${encodeURIComponent(task)}/finish`, {})
+	} catch (err) {
+		appendLog({ ts: new Date().toISOString(), message: `Finish request failed: ${err.message || err}` })
+	}
 	if (btn) { btn.disabled = false; btn.textContent = 'Finish & Merge' }
-	appendLog({ ts: new Date().toISOString(), message: `${finishingTask} merged and destroyed` })
-	await refreshTasks()
-	await refreshStoppedTasks()
+	finishingTask = null
 }
 
 async function startDashboard(task, type) {
