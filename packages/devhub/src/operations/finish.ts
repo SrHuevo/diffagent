@@ -92,12 +92,12 @@ export async function finishTask(
 	}
 
 	if (hasDirtyFiles()) {
-		eventBus.log('Waiting for Claude to commit (polling every 5s, max 120s)...', task)
+		eventBus.log('Waiting for Claude to commit (polling every 5s, max 300s)...', task)
 		let lastHash = await capturePaneHash()
 		let staleCount = 0
 		const STALE_THRESHOLD = 4 // 4 × 5s = 20s unchanged → stuck
 
-		for (let i = 0; i < 24; i++) {
+		for (let i = 0; i < 60; i++) {
 			await sleep(5000)
 
 			if (!hasDirtyFiles()) {
@@ -117,7 +117,7 @@ export async function finishTask(
 				lastHash = hash
 			}
 
-			if (i === 23) eventBus.log('Timeout waiting for Claude to commit', task)
+			if (i === 59) eventBus.log('Timeout waiting for Claude to commit', task)
 		}
 	} else {
 		eventBus.log('No uncommitted changes — nothing to commit', task)
