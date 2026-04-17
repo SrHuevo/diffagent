@@ -93,10 +93,13 @@ export async function finishTask(
 		eventBus.log(`Host commit fallback: ${err.message?.substring(0, 120)}`, task)
 	}
 
-	// Step 3: Merge task branch into base branch.
-	// Use the worktree's own git to push directly — avoids the "refusing to
-	// fetch into branch checked out at worktree" error that happens when the
-	// main repo tries to update a branch that a worktree holds.
+	// Step 3: Merge task branch into base branch — only if worktree is clean.
+	const remaining = execSync('git status --porcelain', gitOpts).trim()
+	if (remaining) {
+		eventBus.log(`Aborting merge: ${remaining.split('\n').length} uncommitted file(s) remain. Commit them first.`, task)
+		return { prUrl: '' }
+	}
+
 	eventBus.log(`Merging ${task} into ${baseBranch}...`, task)
 	try {
 		execSync(`git push origin HEAD:${baseBranch}`, { ...gitOpts, timeout: 60000 })
