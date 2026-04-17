@@ -364,8 +364,26 @@ export async function tryProxy(req: IncomingMessage, res: ServerResponse): Promi
 					res.end(body)
 				})
 			} else {
-				// Pass through as-is
-				res.writeHead(proxyRes.statusCode || 200, proxyRes.headers)
+				// Rewrite Location headers on redirects so they point back to the
+				// original host (tunnel URL), not to internal addresses.
+				const resHeaders = { ...proxyRes.headers }
+				if (originalHost) {
+					const isTunnel = originalHost.includes('trycloudflare.com') || originalHost.includes('.ts.net') || originalHost.includes('ngrok')
+					const proto = isTunnel ? 'https' : 'http'
+					if (resHeaders.location) {
+						resHeaders.location = resHeaders.location
+							.replace(/^https?:\/\/localhost:\d+/, `${proto}://${originalHost}`)
+							.replace(/^https?:\/\/[^/]*\.localhost(?::\d+)?/, `${proto}://${originalHost}`)
+					}
+					// Relax SameSite for tunnel iframes (cross-scheme HTTPS→HTTP blocks Strict cookies)
+					if (isTunnel && resHeaders['set-cookie']) {
+						const cookies = Array.isArray(resHeaders['set-cookie']) ? resHeaders['set-cookie'] : [resHeaders['set-cookie']]
+						resHeaders['set-cookie'] = cookies.map((c: string) =>
+							c.replace(/SameSite=\w+/i, 'SameSite=None; Secure')
+						)
+					}
+				}
+				res.writeHead(proxyRes.statusCode || 200, resHeaders)
 				proxyRes.pipe(res)
 			}
 		},
