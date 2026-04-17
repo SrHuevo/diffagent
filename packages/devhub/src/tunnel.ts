@@ -69,6 +69,11 @@ function readPidFile(): number | null {
 
 export async function getTunnelUrl(): Promise<string | null> {
 	if (cachedTunnelUrl) return cachedTunnelUrl
+	// Manual override (e.g. Tailscale Funnel URL)
+	if (process.env.DEVHUB_TUNNEL_URL) {
+		cachedTunnelUrl = process.env.DEVHUB_TUNNEL_URL.replace(/\/$/, '')
+		return cachedTunnelUrl
+	}
 	// If a previous dev-hub run left cloudflared alive, pick up its URL
 	const priorPid = readPidFile()
 	if (priorPid && isProcessAlive(priorPid)) {
@@ -82,6 +87,12 @@ export async function getTunnelUrl(): Promise<string | null> {
 }
 
 export async function ensureTunnel(): Promise<string | null> {
+	// Manual override — skip cloudflared entirely
+	if (process.env.DEVHUB_TUNNEL_URL) {
+		cachedTunnelUrl = process.env.DEVHUB_TUNNEL_URL.replace(/\/$/, '')
+		return cachedTunnelUrl
+	}
+
 	// Already managing cloudflared in this process
 	if (cachedTunnelUrl && cloudflaredChild && cloudflaredChild.exitCode === null) {
 		return cachedTunnelUrl
