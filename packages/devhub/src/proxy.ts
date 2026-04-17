@@ -370,10 +370,15 @@ export async function tryProxy(req: IncomingMessage, res: ServerResponse): Promi
 				if (originalHost) {
 					const isTunnel = originalHost.includes('trycloudflare.com') || originalHost.includes('.ts.net') || originalHost.includes('ngrok')
 					const proto = isTunnel ? 'https' : 'http'
-					if (resHeaders.location) {
-						resHeaders.location = resHeaders.location
+					if (resHeaders.location && typeof resHeaders.location === 'string') {
+						const loc = resHeaders.location
+						const rewritten = loc
 							.replace(/^https?:\/\/localhost:\d+/, `${proto}://${originalHost}`)
 							.replace(/^https?:\/\/[^/]*\.localhost(?::\d+)?/, `${proto}://${originalHost}`)
+						if (rewritten !== loc) {
+							console.log(`[proxy] Location rewrite: ${loc} → ${rewritten} (proto=${proto})`)
+						}
+						resHeaders.location = rewritten
 					}
 					// Relax SameSite for tunnel iframes (cross-scheme HTTPS→HTTP blocks Strict cookies)
 					if (isTunnel && resHeaders['set-cookie']) {
