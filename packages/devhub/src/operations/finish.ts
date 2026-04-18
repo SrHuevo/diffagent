@@ -99,7 +99,7 @@ export async function finishTask(
 		eventBus.log('Waiting for Claude to commit (polling every 5s, max 300s)...', task)
 		let lastHash = await capturePaneHash()
 		let staleCount = 0
-		const STALE_THRESHOLD = 4
+		const STALE_THRESHOLD = 12 // 12 × 5s = 60s unchanged → stuck
 
 		for (let i = 0; i < 60; i++) {
 			await sleep(5000)
@@ -127,20 +127,25 @@ export async function finishTask(
 		eventBus.log('No uncommitted changes — nothing to commit', task)
 	}
 
-	// Step 3: Host fallback — commit whatever Claude didn't
+	// Step 3: Host fallback — commit via container (avoids permission issues with root-owned files)
 	try {
-		const status = execSync(`git status --porcelain -- . ${GIT_EXCLUDE}`, gitOpts).trim()
+		const status = (await dkr('exec', `app-${slot}`, 'git', 'status', '--porcelain', '--', '.', ':!.claude-session', ':!.gitfile-docker', ':!.diffagent-chat.json', ':!.logs', ':!nul')).trim()
 		if (status) {
-			eventBus.log('Host fallback: committing remaining changes...', task)
-			execSync(`git add -A -- . ${GIT_EXCLUDE}`, gitOpts)
-			execSync(`git commit -m "chore: prepare ${task} for merge"`, gitOpts)
+			eventBus.log('Container fallback: committing remaining changes...', task)
+			await dkr('exec', `app-${slot}`, 'git', 'config', 'user.name', 'Daniel Garoz')
+			await dkr('exec', `app-${slot}`, 'git', 'config', 'user.email', 'heyspanishuk@gmail.com')
+			await dkr('exec', `app-${slot}`, 'bash', '-c', `git add -A -- . ':!.claude-session' ':!.gitfile-docker' ':!.diffagent-chat.json' ':!.logs' ':!nul'`)
+			await dkr('exec', `app-${slot}`, 'git', 'commit', '-m', `chore: prepare ${task} for merge`)
 		}
 	} catch (err: any) {
-		eventBus.log(`Host commit fallback: ${err.message?.substring(0, 120)}`, task)
+		eventBus.log(`Container commit fallback: ${err.message?.substring(0, 120)}`, task)
 	}
 
-	// Step 4: Merge — only if worktree is clean
-	const remaining = execSync(`git status --porcelain -- . ${GIT_EXCLUDE}`, gitOpts).trim()
+	// Step 4: Merge — only if worktree is clean (check via container)
+	let remaining = ''
+	try {
+		remaining = (await dkr('exec', `app-${slot}`, 'git', 'status', '--porcelain', '--', '.', ':!.claude-session', ':!.gitfile-docker', ':!.diffagent-chat.json', ':!.logs', ':!nul')).trim()
+	} catch {}
 	if (remaining) {
 		eventBus.log(`Aborting merge: ${remaining.split('\n').length} uncommitted file(s) remain. Commit them first.`, task)
 		return { prUrl: '' }
@@ -148,7 +153,7 @@ export async function finishTask(
 
 	eventBus.log(`Pushing ${task} to ${baseBranch}...`, task)
 	try {
-		execSync(`git push origin HEAD:${baseBranch}`, { ...gitOpts, timeout: 60000 })
+		await dkr('exec', `app-${slot}`, 'git', 'push', 'origin', `HEAD:${baseBranch}`)
 		eventBus.log(`Pushed to ${baseBranch}`, task)
 	} catch (err: any) {
 		eventBus.log(`Push failed: ${err.message?.substring(0, 200)}`, task)
