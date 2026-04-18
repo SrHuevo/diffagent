@@ -59,10 +59,10 @@ fi
 		cp "$LOCAL_CREDS" "$HOST_CREDS" 2>/dev/null || true
 	fi
 done) &
-# Host → container: when Windows or another session refreshes the token.
+# Host → container: inotifywait for instant detection + poll fallback
+# every 5 min in case inotify doesn't fire on cross-filesystem bind-mounts.
 (while true; do
-	inotifywait -e close_write -e moved_to "$(dirname $HOST_CREDS)" 2>/dev/null
-	sleep 1
+	inotifywait -e close_write -e moved_to -t 300 "$(dirname $HOST_CREDS)" 2>/dev/null
 	if [ -s "$HOST_CREDS" ] && [ "$HOST_CREDS" -nt "$LOCAL_CREDS" ]; then
 		cp "$HOST_CREDS" "$LOCAL_CREDS" 2>/dev/null || true
 		chown dev:dev "$LOCAL_CREDS" 2>/dev/null || true
