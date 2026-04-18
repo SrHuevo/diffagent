@@ -166,7 +166,7 @@ export function App() {
 
 			{/* All panels always mounted, shown/hidden with CSS to preserve iframe state */}
 			<main className="main" style={{ display: activeTab === 'diff' ? undefined : 'none' }}
-				onClick={() => activePanel && setActivePanel(null)}>
+				onClickCapture={(e) => { if (activePanel) { e.stopPropagation(); e.preventDefault(); setActivePanel(null) } }}>
 				{diffLoading && (
 					<div className="diff-loading">
 						<div className="spinner" />
@@ -190,7 +190,8 @@ export function App() {
 				)}
 			</main>
 
-			<main className="main" style={{ display: activeTab === 'teachers' ? undefined : 'none' }}>
+			<main className="main" style={{ display: activeTab === 'teachers' ? undefined : 'none' }}
+				onClickCapture={(e) => { if (activePanel) { e.stopPropagation(); e.preventDefault(); setActivePanel(null) } }}>
 				{!teacherIframeUrl ? (
 					<div className="diff-empty">Select a teacher from the dropdown above</div>
 				) : (
@@ -198,11 +199,13 @@ export function App() {
 				)}
 			</main>
 
-			<main className="main" style={{ display: activeTab === 'students' ? undefined : 'none' }}>
+			<main className="main" style={{ display: activeTab === 'students' ? undefined : 'none' }}
+				onClickCapture={(e) => { if (activePanel) { e.stopPropagation(); e.preventDefault(); setActivePanel(null) } }}>
 				{loadedTabs.has('students') && <BrowserIframe src={buildIframeUrl('students')} />}
 			</main>
 
-			<main className="main" style={{ display: activeTab === 'api' ? undefined : 'none' }}>
+			<main className="main" style={{ display: activeTab === 'api' ? undefined : 'none' }}
+				onClickCapture={(e) => { if (activePanel) { e.stopPropagation(); e.preventDefault(); setActivePanel(null) } }}>
 				{loadedTabs.has('api') && <BrowserIframe src={buildIframeUrl('api')} />}
 			</main>
 
