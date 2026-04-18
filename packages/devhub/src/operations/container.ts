@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+import { realpathSync } from 'node:fs'
 import { config } from '../config.js'
 import { dkr, sanitizeBranch, toUnixPath } from '../docker.js'
 
@@ -99,6 +100,11 @@ if [ ! -f /app/node_modules/.package-lock.json ]; then
 	bun install >> /app/.logs/install.log 2>&1 || true
 fi
 (cd /app/packages/diluu-shared && npx tsc) >> /app/.logs/install.log 2>&1 || true
+
+# Set API URLs with task prefix so frontend API calls route to the correct backend
+echo "VITE_LESSONS_LINKS_API_URL=/${safe}/api/teachers-dashboard" > /app/packages/teachers-dashboard/.env.development.local
+mkdir -p /app/packages/students-dashboard
+echo "VITE_LESSONS_LINKS_API_URL=/${safe}/api/students-dashboard" > /app/packages/students-dashboard/.env.development.local
 
 # File-watching on Windows→Linux bind-mounts needs polling: inotify events
 # don't traverse the filesystem boundary, so native watchers never fire.
@@ -264,8 +270,9 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		// file) so atomic-replace writes (token refresh) propagate correctly.
 		// The entrypoint copies .credentials.json from here into the writable
 		// session dir at startup.
-		// Read-write so the container can sync refreshed tokens BACK to the host.
-		'-v', `${toUnixPath(resolve(home, '.claude'))}:/opt/claude-host`,
+		// Mount the RESOLVED credentials directory (follows symlinks) so the
+		// container gets the real file, not a broken symlink to /mnt/c/...
+		'-v', `${toUnixPath(realpathSync(resolve(home, '.claude')))}:/opt/claude-host`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and
 		// its package.json (read by the bundle via require('../package.json'))

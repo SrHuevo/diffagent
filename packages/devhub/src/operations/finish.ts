@@ -132,10 +132,9 @@ export async function finishTask(
 		const status = (await dkr('exec', `app-${slot}`, 'git', 'status', '--porcelain', '--', '.', ':!.claude-session', ':!.gitfile-docker', ':!.diffagent-chat.json', ':!.logs', ':!nul')).trim()
 		if (status) {
 			eventBus.log('Container fallback: committing remaining changes...', task)
-			await dkr('exec', `app-${slot}`, 'git', 'config', 'user.name', 'Daniel Garoz')
-			await dkr('exec', `app-${slot}`, 'git', 'config', 'user.email', 'heyspanishuk@gmail.com')
+			await dkr('exec', `app-${slot}`, 'bash', '-c', 'git config user.name "Daniel Garoz" && git config user.email "heyspanishuk@gmail.com"')
 			await dkr('exec', `app-${slot}`, 'bash', '-c', `git add -A -- . ':!.claude-session' ':!.gitfile-docker' ':!.diffagent-chat.json' ':!.logs' ':!nul'`)
-			await dkr('exec', `app-${slot}`, 'git', 'commit', '-m', `chore: prepare ${task} for merge`)
+			await dkr('exec', `app-${slot}`, 'bash', '-c', `git commit -m "chore: prepare ${task} for merge"`)
 		}
 	} catch (err: any) {
 		eventBus.log(`Container commit fallback: ${err.message?.substring(0, 120)}`, task)
