@@ -50,11 +50,22 @@ if [ -f "$HOST_CREDS" ] && [ -s "$HOST_CREDS" ]; then
 	fi
 fi
 
-# Background: sync refreshed tokens back to host every 60s
+# Watch for credential changes in both directions using inotifywait.
+# Container → host: when Claude refreshes its token inside the container.
 (while true; do
-	sleep 60
+	inotifywait -e close_write -e moved_to "$(dirname $LOCAL_CREDS)" 2>/dev/null
+	sleep 1
 	if [ -s "$LOCAL_CREDS" ] && [ "$LOCAL_CREDS" -nt "$HOST_CREDS" ]; then
 		cp "$LOCAL_CREDS" "$HOST_CREDS" 2>/dev/null || true
+	fi
+done) &
+# Host → container: when Windows or another session refreshes the token.
+(while true; do
+	inotifywait -e close_write -e moved_to "$(dirname $HOST_CREDS)" 2>/dev/null
+	sleep 1
+	if [ -s "$HOST_CREDS" ] && [ "$HOST_CREDS" -nt "$LOCAL_CREDS" ]; then
+		cp "$HOST_CREDS" "$LOCAL_CREDS" 2>/dev/null || true
+		chown dev:dev "$LOCAL_CREDS" 2>/dev/null || true
 	fi
 done) &
 
