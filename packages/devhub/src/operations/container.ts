@@ -40,10 +40,23 @@ chown -R dev:dev /app 2>/dev/null || true
 
 # Copy host credentials into the session dir so Claude can authenticate.
 # The source is a read-only mount at /opt/claude-creds.json from the host.
-if [ -f /opt/claude-host/.credentials.json ] && [ -s /opt/claude-host/.credentials.json ]; then
-	cp /opt/claude-host/.credentials.json /home/dev/.claude/.credentials.json 2>/dev/null || true
-	chown dev:dev /home/dev/.claude/.credentials.json 2>/dev/null || true
+# Bidirectional credential sync between host and container session dir.
+HOST_CREDS=/opt/claude-host/.credentials.json
+LOCAL_CREDS=/home/dev/.claude/.credentials.json
+if [ -f "$HOST_CREDS" ] && [ -s "$HOST_CREDS" ]; then
+	if [ ! -s "$LOCAL_CREDS" ] || [ "$HOST_CREDS" -nt "$LOCAL_CREDS" ]; then
+		cp "$HOST_CREDS" "$LOCAL_CREDS" 2>/dev/null || true
+		chown dev:dev "$LOCAL_CREDS" 2>/dev/null || true
+	fi
 fi
+
+# Background: sync refreshed tokens back to host every 60s
+(while true; do
+	sleep 60
+	if [ -s "$LOCAL_CREDS" ] && [ "$LOCAL_CREDS" -nt "$HOST_CREDS" ]; then
+		cp "$LOCAL_CREDS" "$HOST_CREDS" 2>/dev/null || true
+	fi
+done) &
 
 # Install restart helpers so Claude Code inside the container can bounce services
 cat > /usr/local/bin/restart-backend <<'EOF'
@@ -232,7 +245,8 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		// file) so atomic-replace writes (token refresh) propagate correctly.
 		// The entrypoint copies .credentials.json from here into the writable
 		// session dir at startup.
-		'-v', `${toUnixPath(resolve(home, '.claude'))}:/opt/claude-host:ro`,
+		// Read-write so the container can sync refreshed tokens BACK to the host.
+		'-v', `${toUnixPath(resolve(home, '.claude'))}:/opt/claude-host`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and
 		// its package.json (read by the bundle via require('../package.json'))
