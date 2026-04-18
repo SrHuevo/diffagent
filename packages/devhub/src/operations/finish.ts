@@ -52,7 +52,7 @@ export async function finishTask(
 			const req = http.request({
 				hostname: '127.0.0.1',
 				port: 80,
-				path: `/${safe}/diffagent/api/chat/inject`,
+				path: '/api/chat/inject',
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
