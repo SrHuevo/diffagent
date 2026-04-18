@@ -1,5 +1,4 @@
-import { resolve, dirname } from 'node:path'
-import { realpathSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { config } from '../config.js'
 import { dkr, sanitizeBranch, toUnixPath } from '../docker.js'
 
@@ -270,10 +269,10 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		// file) so atomic-replace writes (token refresh) propagate correctly.
 		// The entrypoint copies .credentials.json from here into the writable
 		// session dir at startup.
-		// Mount the RESOLVED credentials directory. ~/.claude/.credentials.json
-		// may be a symlink to /mnt/c/... (Windows); resolving it ensures the
-		// container gets the real file, not a broken symlink.
-		'-v', `${toUnixPath(dirname(realpathSync(resolve(home, '.claude/.credentials.json'))))}:/opt/claude-host`,
+		// Host ~/.claude dir for credential sync (inotifywait in entrypoint).
+		// Must be a real file, NOT a symlink to /mnt/c — Docker Desktop copies
+		// bind-mount contents to its internal cache and symlinks break.
+		'-v', `${toUnixPath(resolve(home, '.claude'))}:/opt/claude-host`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and
 		// its package.json (read by the bundle via require('../package.json'))
