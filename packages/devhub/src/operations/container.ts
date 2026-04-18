@@ -113,6 +113,14 @@ export CHOKIDAR_INTERVAL=1000
 	sleep 2
 done) &
 
+# Teachers Vite with auto-restart
+(while true; do
+	echo "[$(date -Is)] starting teachers vite" >> /app/.logs/teachers-vite.log
+	(cd /app/packages/teachers-dashboard && CHOKIDAR_USEPOLLING=1 CHOKIDAR_INTERVAL=1000 npx vite --host 0.0.0.0 --port 5173 --base /${safe}/teachers/) >> /app/.logs/teachers-vite.log 2>&1
+	echo "[$(date -Is)] teachers vite exited, restarting in 2s" >> /app/.logs/teachers-vite.log
+	sleep 2
+done) &
+
 # tmux session hosting an interactive Claude Code. ttyd attaches to this
 # session so the UI iframe shows the real TUI. The session is named 'claude'
 # (fixed) so tmux send-keys -t claude from inject endpoints always hits it.
