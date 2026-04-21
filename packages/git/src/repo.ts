@@ -1,8 +1,6 @@
 import { execFileSync, execSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { exec } from './exec.js';
 import { WORKING_TREE_REFS } from './diff.js';
 import type { RepoInfo } from './types.js';
@@ -46,9 +44,7 @@ export function getHeadHash(): string {
 }
 
 export function getDiffityDirPath(): string {
-  const repoRoot = getRepoRoot();
-  const hash = createHash('sha256').update(repoRoot).digest('hex').slice(0, 12);
-  return join(homedir(), '.diffity', hash);
+  return join(getRepoRoot(), '.diffity');
 }
 
 export function getDiffityDir(): string {

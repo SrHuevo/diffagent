@@ -69,5 +69,8 @@ export function ensureGitignore(): void {
 		if (!content.includes('.devhub-tasks.json')) {
 			appendFileSync(gitignorePath, '\n# Dev Hub task state\n.devhub-tasks.json\n')
 		}
+		if (!content.includes('.diffity/')) {
+			appendFileSync(gitignorePath, '\n# DiffAgent review state (SQLite DB per worktree)\n.diffity/\n')
+		}
 	} catch {}
 }
