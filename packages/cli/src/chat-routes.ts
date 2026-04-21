@@ -14,7 +14,7 @@ const TMUX_SESSION = 'claude'
  */
 function tmuxSendKeys(text: string): Promise<void> {
 	const flat = text.replace(/\n/g, ' ').replace(/'/g, "'\\''")
-	const cmd = `tmux send-keys -t ${TMUX_SESSION} -l '${flat}' \\; send-keys -t ${TMUX_SESSION} Enter`
+	const cmd = `tmux send-keys -t ${TMUX_SESSION} -l '${flat}'; sleep 0.2; tmux send-keys -t ${TMUX_SESSION} Enter`
 	return new Promise((resolve, reject) => {
 		const p = spawn('su', ['dev', '-c', cmd])
 		p.on('error', reject)

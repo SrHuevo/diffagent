@@ -1,6 +1,7 @@
 import { config } from './config.js'
 import { createHttpServer } from './server.js'
 import { warmupPool } from './operations/warmup.js'
+import { replenishPool } from './operations/replenish.js'
 import { resumeTask } from './operations/resume.js'
 import { eventBus } from './events.js'
 import { getActiveTasks, ensureGitignore } from './task-store.js'
@@ -104,7 +105,9 @@ async function main() {
 	// running. Docker sometimes exits containers on `restart` or when pipes
 	// break, and Traefik can't route until the container is up again.
 	setInterval(() => {
-		reviveStaleContainers().catch(() => {})
+		reviveStaleContainers()
+			.then(() => replenishPool())
+			.catch(() => {})
 	}, 30000)
 }
 

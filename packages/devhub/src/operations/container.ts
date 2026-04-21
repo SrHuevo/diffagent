@@ -32,8 +32,23 @@ mkdir -p /tmp/git-worktree
 cp -a /app/.worktree-git/* /tmp/git-worktree/ 2>/dev/null || true
 echo '/main-git' > /tmp/git-worktree/commondir
 echo '/app' > /tmp/git-worktree/gitdir
+chown -R dev:dev /tmp/git-worktree
+chmod -R a+rwX /main-git
 git config --global core.autocrlf true
 git config --global --add safe.directory '*'
+
+# SSH keys for git push (mounted read-only, copied with strict perms)
+# sed strips Windows CRLF that breaks SSH key parsing
+for u in root dev; do
+	h=$(eval echo ~$u)
+	mkdir -p $h/.ssh
+	sed 's/\r$//' /opt/ssh-keys/id_ed25519 > $h/.ssh/id_ed25519 2>/dev/null || true
+	sed 's/\r$//' /opt/ssh-keys/id_ed25519.pub > $h/.ssh/id_ed25519.pub 2>/dev/null || true
+	sed 's/\r$//' /opt/ssh-keys/known_hosts > $h/.ssh/known_hosts 2>/dev/null || true
+	chmod 700 $h/.ssh
+	chmod 600 $h/.ssh/id_ed25519 2>/dev/null || true
+	chown -R $u:$u $h/.ssh 2>/dev/null || true
+done
 
 mkdir -p /app/.logs
 chown -R dev:dev /app 2>/dev/null || true
@@ -256,7 +271,7 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		'-v', `diluu-nm-${slot}:/app/node_modules`,
 		'-v', 'diluu-bun-cache:/root/.bun/install/cache',
 		'-v', `${wgd}:/app/.worktree-git:ro`,
-		'-v', `${mgd}:/main-git:ro`,
+		'-v', `${mgd}:/main-git`,
 		// Claude Code session — the entire .claude-session dir is mounted as
 		// /root/.claude and /home/dev/.claude. Credentials live INSIDE the dir
 		// mount (not as a separate file mount) so atomic-replace writes from
@@ -273,6 +288,8 @@ exec node /opt/diffagent-linux/packages/cli/dist/index.js --port 4001 --no-open 
 		// Must be a real file, NOT a symlink to /mnt/c — Docker Desktop copies
 		// bind-mount contents to its internal cache and symlinks break.
 		'-v', `${toUnixPath(resolve(home, '.claude'))}:/opt/claude-host`,
+		// SSH keys for git push from inside the container
+		'-v', `${toUnixPath(resolve(home, '.ssh'))}:/opt/ssh-keys:ro`,
 		// DiffAgent: the image preinstalls Linux-native deps (better-sqlite3 +
 		// CLI externals) at /opt/diffagent-linux. Only the built CLI `dist/` and
 		// its package.json (read by the bundle via require('../package.json'))
