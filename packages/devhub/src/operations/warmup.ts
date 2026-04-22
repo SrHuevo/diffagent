@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, unlinkSync } from 'node:fs'
 import { config } from '../config.js'
 import { pool } from '../pool.js'
 import { dkr, ensureNetwork, ensureTraefik, ensureImage, toUnixPath, sleep } from '../docker.js'
@@ -13,6 +13,20 @@ function copyIfExists(src: string, dst: string): void {
 	} catch {}
 }
 
+// Hosts writes fail with EACCES when a previous container run (as root) left
+// root-owned files behind. Probe-write to detect that case before we rely on
+// the worktree being writable.
+function isWritable(dir: string): boolean {
+	const probe = resolve(dir, '.diluu-write-probe')
+	try {
+		writeFileSync(probe, '')
+		unlinkSync(probe)
+		return true
+	} catch {
+		return false
+	}
+}
+
 export async function warmupSlot(slot: string): Promise<void> {
 	const worktreePath = resolve(config.worktreesDir, slot)
 	const baseBranch = 'feature/version-3'
@@ -20,9 +34,27 @@ export async function warmupSlot(slot: string): Promise<void> {
 	pool.setSlot(slot, 'warming')
 	eventBus.log('Warming up...', slot)
 
-	// 1. Create worktree
-	if (!existsSync(worktreePath)) {
+	// 1. Create worktree. Also recreate if prior destroy left half-cleaned state
+	// (gitdir wiped but worktree files remain, or vice versa), or if the
+	// worktree has root-owned leftovers from a container run that block our
+	// host-side writes — otherwise later writeFileSync calls (.gitfile-docker
+	// etc.) trap the slot in `error` forever.
+	const worktreeGitDir = resolve(config.mainGitDir, 'worktrees', slot)
+	const gitdirValid = existsSync(resolve(worktreeGitDir, 'HEAD'))
+	const worktreeWritable = existsSync(worktreePath) ? isWritable(worktreePath) : true
+	if (!existsSync(worktreePath) || !gitdirValid || !worktreeWritable) {
 		eventBus.log('Creating worktree...', slot)
+		if (existsSync(worktreePath) || existsSync(worktreeGitDir)) {
+			// Remnants may be root-owned (written from container) — wipe via
+			// a throwaway container so root can delete them.
+			await dkr(
+				'run', '--rm',
+				'-v', `${toUnixPath(config.worktreesDir)}:/wt`,
+				'-v', `${toUnixPath(config.mainGitDir)}:/git`,
+				'diluu-dev:latest',
+				'rm', '-rf', `/wt/${slot}`, `/git/worktrees/${slot}`,
+			)
+		}
 		await worktreeAdd(worktreePath, slot, baseBranch)
 	}
 
@@ -47,12 +79,6 @@ export async function warmupSlot(slot: string): Promise<void> {
 		resolve(worktreePath, 'packages/lessons-links/.env.development'),
 	)
 	copyIfExists(resolve(config.projectRoot, '.env'), resolve(worktreePath, '.env'))
-
-	mkdirSync(resolve(worktreePath, 'packages/teachers-dashboard'), { recursive: true })
-	writeFileSync(
-		resolve(worktreePath, 'packages/teachers-dashboard/.env.development.local'),
-		'VITE_LESSONS_LINKS_API_URL=/api/teachers-dashboard\n',
-	)
 
 	// 4. Claude Code session — credentials are COPIED (not bind-mounted as a
 	// separate file) so atomic-replace writes propagate through the dir mount.
@@ -209,12 +235,13 @@ export async function warmupPool(): Promise<void> {
 
 		if (status === 'free') {
 			const worktreeExists = existsSync(resolve(config.worktreesDir, slot))
+			const gitdirValid = existsSync(resolve(config.mainGitDir, 'worktrees', slot, 'HEAD'))
 			let mongoExists = false
 			try {
 				await dkr('inspect', `mongo-${slot}`)
 				mongoExists = true
 			} catch {}
-			if (worktreeExists && mongoExists) {
+			if (worktreeExists && gitdirValid && mongoExists) {
 				eventBus.log('Already ready', slot)
 				continue
 			}
