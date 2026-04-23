@@ -1,4 +1,5 @@
 import { resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, unlinkSync } from 'node:fs'
 import { config } from '../config.js'
 import { pool } from '../pool.js'
@@ -27,6 +28,19 @@ function isWritable(dir: string): boolean {
 	}
 }
 
+// Existence of gitdir/HEAD isn't enough — past surgery (empty `index`, missing
+// `commondir`, dangling ref) can leave a worktree that git refuses to operate
+// on. Probe with a real git command so only a functional worktree passes.
+function isGitHealthy(worktreePath: string): boolean {
+	try {
+		execFileSync('git', ['-C', worktreePath, 'rev-parse', '--verify', 'HEAD'], { stdio: 'pipe' })
+		execFileSync('git', ['-C', worktreePath, 'status', '--porcelain'], { stdio: 'pipe' })
+		return true
+	} catch {
+		return false
+	}
+}
+
 export async function warmupSlot(slot: string): Promise<void> {
 	const worktreePath = resolve(config.worktreesDir, slot)
 	const baseBranch = 'feature/version-3'
@@ -40,9 +54,9 @@ export async function warmupSlot(slot: string): Promise<void> {
 	// host-side writes — otherwise later writeFileSync calls (.gitfile-docker
 	// etc.) trap the slot in `error` forever.
 	const worktreeGitDir = resolve(config.mainGitDir, 'worktrees', slot)
-	const gitdirValid = existsSync(resolve(worktreeGitDir, 'HEAD'))
+	const gitHealthy = existsSync(worktreePath) && isGitHealthy(worktreePath)
 	const worktreeWritable = existsSync(worktreePath) ? isWritable(worktreePath) : true
-	if (!existsSync(worktreePath) || !gitdirValid || !worktreeWritable) {
+	if (!existsSync(worktreePath) || !gitHealthy || !worktreeWritable) {
 		eventBus.log('Creating worktree...', slot)
 		if (existsSync(worktreePath) || existsSync(worktreeGitDir)) {
 			// Remnants may be root-owned (written from container) — wipe via

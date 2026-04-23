@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { pool } from './pool.js'
 import { config } from './config.js'
 import { sanitizeBranch } from './docker.js'
+import { eventBus } from './events.js'
 
 // --- File-based comment storage for DiffAgent ---
 
@@ -102,19 +103,6 @@ function resolveTarget(path: string): ProxyTarget | null {
 
 	const active = pool.listActive()
 
-	// Handle bare /api/* paths from SPA frontends (no task prefix)
-	// These come from apps using root-relative API URLs like /api/teachers-dashboard/me
-	// Route them to the first active task's app container
-	if (parts[0] === 'api' && active.length > 0) {
-		const taskSafe = sanitizeBranch(active[0].info.task)
-		return {
-			host: `${taskSafe}.localhost`,
-			stripPrefix: '',
-			rewriteBasePath: null,
-			forwardedPrefix: '',
-		}
-	}
-
 	const taskSafe = parts[0]
 	const match = active.find(({ info }) => sanitizeBranch(info.task) === taskSafe)
 	if (!match) return null
@@ -183,7 +171,9 @@ export async function tryProxy(req: IncomingMessage, res: ServerResponse): Promi
 					res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' })
 					res.end(diff)
 					return true
-				} catch {}
+				} catch (err: any) {
+					eventBus.log(`host /api/diff/raw failed for ${slot}: ${err.message?.slice(0, 200)}`, slot)
+				}
 			}
 			if (targetPath.startsWith('/api/info')) {
 				try {
