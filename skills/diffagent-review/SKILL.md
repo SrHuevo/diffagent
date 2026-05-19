@@ -1,28 +1,28 @@
 ---
-name: diffity-review
-description: Review current diff and leave comments using diffity agent commands
+name: diffagent-review
+description: Review current diff and leave comments using diffagent agent commands
 user-invocable: true
 ---
 
-# Diffity Review Skill
+# Diffagent Review Skill
 
-You are reviewing a diff and leaving inline comments using the `diffity agent` CLI.
+You are reviewing a diff and leaving inline comments using the `diffagent agent` CLI.
 
 ## Arguments
 
-- `ref` (optional): Git ref to review (e.g. `main..feature`, `HEAD~3`). Defaults to working tree changes. When both `ref` and `focus` are provided, use both (e.g. `/diffity-review main..feature security`).
+- `ref` (optional): Git ref to review (e.g. `main..feature`, `HEAD~3`). Defaults to working tree changes. When both `ref` and `focus` are provided, use both (e.g. `/diffagent-review main..feature security`).
 - `focus` (optional): Focus the review on a specific area. One of: `security`, `performance`, `naming`, `errors`, `types`, `logic`. If omitted, review everything.
 
 ## CLI Reference
 
 ```
-diffity agent diff
-diffity agent list [--status open|resolved|dismissed] [--json]
-diffity agent comment --file <path> --line <n> [--end-line <n>] [--side new|old] --body "<text>"
-diffity agent general-comment --body "<text>"
-diffity agent resolve <id> [--summary "<text>"]
-diffity agent dismiss <id> [--reason "<text>"]
-diffity agent reply <id> --body "<text>"
+diffagent agent diff
+diffagent agent list [--status open|resolved|dismissed] [--json]
+diffagent agent comment --file <path> --line <n> [--end-line <n>] [--side new|old] --body "<text>"
+diffagent agent general-comment --body "<text>"
+diffagent agent resolve <id> [--summary "<text>"]
+diffagent agent dismiss <id> [--reason "<text>"]
+diffagent agent reply <id> --body "<text>"
 ```
 
 - `--file`, `--line`, `--body` are required for `comment`
@@ -33,30 +33,30 @@ diffity agent reply <id> --body "<text>"
 
 ## Prerequisites
 
-1. Check that `diffity` is available: run `which diffity`. If not found, install it with `npm install -g diffity`.
+1. Check that `diffagent` is available: run `which diffagent`. If not found, install it with `npm install -g diffagent`.
 
 ## Instructions
 
-### Step 1: Ensure diffity is running for the correct ref (without opening browser)
+### Step 1: Ensure diffagent is running for the correct ref (without opening browser)
 
 The review needs a running session whose ref matches the requested ref. A ref mismatch causes "file not in current diff" errors when adding comments.
 
-1. Run `diffity list --json` to get all running instances. Parse the JSON output and find the entry whose `repoRoot` matches the current repo.
+1. Run `diffagent list --json` to get all running instances. Parse the JSON output and find the entry whose `repoRoot` matches the current repo.
 2. If a matching entry exists, compare its `ref` field against the requested ref:
    - The registry stores `"work"` for working-tree sessions and the user-provided ref string (e.g. `"main"`, `"HEAD~3"`) for named refs.
    - If refs **match** → reuse the session, note the port, and continue to Step 2.
-   - If refs **don't match** → restart: run `diffity <ref> --no-open --new` (or `diffity --no-open --new` if no ref). The `--new` flag kills the old session and starts a fresh one. Use Bash tool with `run_in_background: true`. Wait 2 seconds, then verify with `diffity list --json` and note the port.
-   - If **no ref was requested** and the running session's ref is not `"work"` → restart with `diffity --no-open --new` (the running session is for a named ref, but we need working-tree).
+   - If refs **don't match** → restart: run `diffagent <ref> --no-open --new` (or `diffagent --no-open --new` if no ref). The `--new` flag kills the old session and starts a fresh one. Use Bash tool with `run_in_background: true`. Wait 2 seconds, then verify with `diffagent list --json` and note the port.
+   - If **no ref was requested** and the running session's ref is not `"work"` → restart with `diffagent --no-open --new` (the running session is for a named ref, but we need working-tree).
 3. If **no session is running** for this repo, start one in the background:
-   - Command: `diffity <ref> --no-open` (or `diffity --no-open` if no ref)
+   - Command: `diffagent <ref> --no-open` (or `diffagent --no-open` if no ref)
    - Use Bash tool with `run_in_background: true`
-   - Wait 2 seconds, then verify with `diffity list --json` and note the port.
+   - Wait 2 seconds, then verify with `diffagent list --json` and note the port.
 
 ### Step 2: Review the diff
 
-1. **Get the unified diff** directly from diffity — this handles merge-base resolution, untracked files, and all ref types automatically:
+1. **Get the unified diff** directly from diffagent — this handles merge-base resolution, untracked files, and all ref types automatically:
    ```
-   diffity agent diff
+   diffagent agent diff
    ```
    This outputs the full unified diff for the current session. Line numbers are in the `@@` hunk headers.
 2. Find and read all relevant CLAUDE.md files — the root CLAUDE.md and any CLAUDE.md files in directories containing modified files. These define project-specific rules that the diff must follow.
@@ -179,7 +179,7 @@ If a repeated pattern appears across files, comment on the first occurrence and 
 
 3. For each finding, leave an inline comment using:
    ```
-   diffity agent comment --file <path> --line <n> [--end-line <n>] [--side new] --body "<comment>"
+   diffagent agent comment --file <path> --line <n> [--end-line <n>] [--side new] --body "<comment>"
    ```
    - Use `--side new` (default) for comments on added/modified code
    - Use `--side old` for comments on removed code
@@ -196,20 +196,20 @@ If a repeated pattern appears across files, comment on the first occurrence and 
    - **Do not use severity prefixes in the general comment** — prefixes are only for inline findings.
    - Lead with the verdict, be direct and concise — no compliments, no filler, no narrating what the code does.
    ```
-   diffity agent general-comment --body "<overall review summary>"
+   diffagent agent general-comment --body "<overall review summary>"
    ```
 
 ### Step 4: Open the browser
 
 1. Open the browser now that comments are ready:
    ```
-   diffity open <ref>
+   diffagent open <ref>
    ```
-   Pass the ref argument if one was provided (e.g. `diffity open HEAD~3`). Omit it to open the default view.
+   Pass the ref argument if one was provided (e.g. `diffagent open HEAD~3`). Omit it to open the default view.
 2. Tell the user the review is ready and they can check the browser. Example:
 
    > Review complete — check your browser.
    >
    > Found: 2 must-fix, 1 suggestion
    >
-   > When you're ready, run **/diffity-resolve** to fix them.
+   > When you're ready, run **/diffagent-resolve** to fix them.

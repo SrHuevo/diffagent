@@ -1,12 +1,12 @@
 ---
-name: diffity-diff
-description: Open the diffity diff viewer in the browser to see your changes
+name: diffagent-diff
+description: Open the diffagent diff viewer in the browser to see your changes
 user-invocable: true
 ---
 
-# Diffity Diff Skill
+# Diffagent Diff Skill
 
-You are opening the diffity diff viewer so the user can see their changes in the browser.
+You are opening the diffagent diff viewer so the user can see their changes in the browser.
 
 ## Arguments
 
@@ -19,9 +19,9 @@ You are opening the diffity diff viewer so the user can see their changes in the
    - The CLI handles everything: if an instance is already running for this repo it reuses it and opens the browser, otherwise it starts a new server and opens the browser.
    - Do NOT use `&` or `--quiet` — let the Bash tool handle backgrounding.
 3. Wait 2 seconds, then run `{{binary}} list --json` to get the port.
-4. Tell the user diffity is running. Print the URL and keep it short — don't show session IDs, hashes, or other internals. Example:
+4. Tell the user diffagent is running. Print the URL and keep it short — don't show session IDs, hashes, or other internals. Example:
 
-   > Diffity is running at http://localhost:5391
+   > Diffagent is running at http://localhost:5391
    >
    > When you're ready:
    > - Leave comments on the diff in your browser, then run **{{slash}}resolve** to fix them

@@ -155,7 +155,7 @@ export async function tryProxy(req: IncomingMessage, res: ServerResponse): Promi
 	const target = resolveTarget(url.pathname)
 	if (!target) return false
 
-	// Intercept slow Diffity git operations and resolve them on the host (20x faster)
+	// Intercept slow Diffagent git operations and resolve them on the host (20x faster)
 	const targetPath = url.pathname.slice(target.stripPrefix.length) || '/'
 	if (target.host.startsWith('diffagent.') && (targetPath.startsWith('/api/diff/raw') || targetPath.startsWith('/api/info') || targetPath.startsWith('/api/threads'))) {
 		const parts = url.pathname.split('/').filter(Boolean)

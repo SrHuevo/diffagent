@@ -335,7 +335,7 @@ const routes: Route[] = [
 		}
 	}),
 
-	// Host-computed git diff (shortcut used by Diffity)
+	// Host-computed git diff (shortcut used by Diffagent)
 	route('GET', '/api/host/diff/:task', async (_req, res, { task }) => {
 		const slot = pool.findTask(task)
 		if (!slot) return sendError(res, 404, 'Task not found')
@@ -356,7 +356,7 @@ const routes: Route[] = [
 	}),
 
 	// Host-computed git command (20x faster than Docker bind mount)
-	// Used by Diffity in Docker to avoid slow filesystem operations
+	// Used by Diffagent in Docker to avoid slow filesystem operations
 	route('GET', '/api/host/git/:task', async (req, res, { task }) => {
 		const slot = pool.findTask(task)
 		if (!slot) return sendError(res, 404, 'Task not found')

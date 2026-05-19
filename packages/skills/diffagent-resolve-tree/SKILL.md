@@ -1,16 +1,16 @@
 ---
-name: diffity-resolve-tree
+name: diffagent-resolve-tree
 description: Read open comments from the tree browser and resolve them by making code fixes
 user-invocable: true
 ---
 
-# Diffity Resolve Tree Skill
+# Diffagent Resolve Tree Skill
 
-You are reading open comments left on repository files via the `diffity tree` browser and resolving them by making the requested code changes.
+You are reading open comments left on repository files via the `diffagent tree` browser and resolving them by making the requested code changes.
 
 ## Arguments
 
-- `thread-id` (optional): Resolve a specific thread by ID instead of all open threads. Example: `/diffity-resolve-tree abc123`
+- `thread-id` (optional): Resolve a specific thread by ID instead of all open threads. Example: `/diffagent-resolve-tree abc123`
 
 ## CLI Reference
 
@@ -29,7 +29,7 @@ You are reading open comments left on repository files via the `diffity tree` br
 ## Prerequisites
 
 1. Check that `{{binary}}` is available: run `which {{binary}}`. If not found, {{install_hint}}.
-2. Check that a tree session exists: run `{{binary}} agent list`. If this fails with "No active review session", tell the user to start diffity tree first (e.g. `{{binary}} tree`).
+2. Check that a tree session exists: run `{{binary}} agent list`. If this fails with "No active review session", tell the user to start diffagent tree first (e.g. `{{binary}} tree`).
 
 ## Instructions
 

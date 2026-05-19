@@ -1,25 +1,25 @@
 ---
-name: diffity-resolve-tree
+name: diffagent-resolve-tree
 description: Read open comments from the tree browser and resolve them by making code fixes
 user-invocable: true
 ---
 
-# Diffity Resolve Tree Skill
+# Diffagent Resolve Tree Skill
 
-You are reading open comments left on repository files via the `diffity tree` browser and resolving them by making the requested code changes.
+You are reading open comments left on repository files via the `diffagent tree` browser and resolving them by making the requested code changes.
 
 ## Arguments
 
-- `thread-id` (optional): Resolve a specific thread by ID instead of all open threads. Example: `/diffity-resolve-tree abc123`
+- `thread-id` (optional): Resolve a specific thread by ID instead of all open threads. Example: `/diffagent-resolve-tree abc123`
 
 ## CLI Reference
 
 ```
-diffity agent list [--status open|resolved|dismissed] [--json]
-diffity agent comment --file <path> --line <n> [--end-line <n>] --body "<text>"
-diffity agent resolve <id> [--summary "<text>"]
-diffity agent dismiss <id> [--reason "<text>"]
-diffity agent reply <id> --body "<text>"
+diffagent agent list [--status open|resolved|dismissed] [--json]
+diffagent agent comment --file <path> --line <n> [--end-line <n>] --body "<text>"
+diffagent agent resolve <id> [--summary "<text>"]
+diffagent agent dismiss <id> [--reason "<text>"]
+diffagent agent reply <id> --body "<text>"
 ```
 
 - `--file`, `--line`, `--body` are required for `comment`
@@ -28,14 +28,14 @@ diffity agent reply <id> --body "<text>"
 
 ## Prerequisites
 
-1. Check that `diffity` is available: run `which diffity`. If not found, install it with `npm install -g diffity`.
-2. Check that a tree session exists: run `diffity agent list`. If this fails with "No active review session", tell the user to start diffity tree first (e.g. `diffity tree`).
+1. Check that `diffagent` is available: run `which diffagent`. If not found, install it with `npm install -g diffagent`.
+2. Check that a tree session exists: run `diffagent agent list`. If this fails with "No active review session", tell the user to start diffagent tree first (e.g. `diffagent tree`).
 
 ## Instructions
 
 1. List open comment threads with full details:
    ```
-   diffity agent list --status open --json
+   diffagent agent list --status open --json
    ```
    If a `thread-id` argument was provided, filter to just that thread. The JSON output includes the full comment body, file path, line numbers, and side for each thread.
 2. If there are no open threads, tell the user there's nothing to resolve.
@@ -44,7 +44,7 @@ diffity agent reply <id> --body "<text>"
    b. **Skip** threads where the last comment is an agent reply that asks the user a question and the user hasn't responded yet — the agent is waiting for user input.
    c. **`[question]` comments** (from the user) — read the question, examine the relevant code, and reply with an answer:
       ```
-      diffity agent reply <thread-id> --body "Your answer here"
+      diffagent agent reply <thread-id> --body "Your answer here"
       ```
       Then resolve the thread with a summary of your answer.
    d. Comments phrased as questions without an explicit `[question]` tag (e.g. "should we add X?" or "can we rename this?") are suggestions — treat them as actionable requests and make the change.
@@ -53,11 +53,11 @@ diffity agent reply <id> --body "<text>"
       - If the comment suggests adding documentation, add or update the relevant docs.
       - If the comment is genuinely unclear, reply asking for clarification:
         ```
-        diffity agent reply <thread-id> --body "Could you clarify what change you'd like here?"
+        diffagent agent reply <thread-id> --body "Could you clarify what change you'd like here?"
         ```
    f. After making the change, resolve the thread with a summary:
       ```
-      diffity agent resolve <thread-id> --summary "Fixed: <brief description of what was changed>"
+      diffagent agent resolve <thread-id> --summary "Fixed: <brief description of what was changed>"
       ```
-4. After resolving all applicable threads, run `diffity agent list` to confirm status.
+4. After resolving all applicable threads, run `diffagent agent list` to confirm status.
 5. Tell the user to check the browser — resolved status will appear within 2 seconds via polling.

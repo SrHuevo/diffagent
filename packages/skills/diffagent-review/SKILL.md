@@ -1,16 +1,16 @@
 ---
-name: diffity-review
-description: Review current diff and leave comments using diffity agent commands
+name: diffagent-review
+description: Review current diff and leave comments using diffagent agent commands
 user-invocable: true
 ---
 
-# Diffity Review Skill
+# Diffagent Review Skill
 
 You are reviewing a diff and leaving inline comments using the `{{binary}} agent` CLI.
 
 ## Arguments
 
-- `ref` (optional): Git ref to review (e.g. `main..feature`, `HEAD~3`). Defaults to working tree changes. When both `ref` and `focus` are provided, use both (e.g. `/diffity-review main..feature security`).
+- `ref` (optional): Git ref to review (e.g. `main..feature`, `HEAD~3`). Defaults to working tree changes. When both `ref` and `focus` are provided, use both (e.g. `/diffagent-review main..feature security`).
 - `focus` (optional): Focus the review on a specific area. One of: `security`, `performance`, `naming`, `errors`, `types`, `logic`. If omitted, review everything.
 
 ## CLI Reference
@@ -37,7 +37,7 @@ You are reviewing a diff and leaving inline comments using the `{{binary}} agent
 
 ## Instructions
 
-### Step 1: Ensure diffity is running for the correct ref (without opening browser)
+### Step 1: Ensure diffagent is running for the correct ref (without opening browser)
 
 The review needs a running session whose ref matches the requested ref. A ref mismatch causes "file not in current diff" errors when adding comments.
 
@@ -54,7 +54,7 @@ The review needs a running session whose ref matches the requested ref. A ref mi
 
 ### Step 2: Review the diff
 
-1. **Get the unified diff** directly from diffity — this handles merge-base resolution, untracked files, and all ref types automatically:
+1. **Get the unified diff** directly from diffagent — this handles merge-base resolution, untracked files, and all ref types automatically:
    ```
    {{binary}} agent diff
    ```

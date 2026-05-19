@@ -1,5 +1,5 @@
 ---
-name: diffity-tour
+name: diffagent-tour
 description: >-
   Create a guided code tour that walks through the codebase to answer a question
   or explain a feature. Opens in the browser with step-by-step navigation and
@@ -7,34 +7,34 @@ description: >-
 user-invocable: true
 ---
 
-# Diffity Tour Skill
+# Diffagent Tour Skill
 
 You are creating a guided code tour — a narrated, step-by-step walkthrough of the codebase that answers the user's question or explains how a feature works. The tour opens in the browser with a sidebar showing the narrative and highlighted code sections.
 
 ## Arguments
 
 - `question` (required): The user's question, topic, or concept. Examples:
-  - `/diffity-tour how does authentication work?`
-  - `/diffity-tour explain the request lifecycle`
-  - `/diffity-tour how are comments stored and retrieved?`
-  - `/diffity-tour closures`
-  - `/diffity-tour async/await patterns`
-  - `/diffity-tour React hooks`
+  - `/diffagent-tour how does authentication work?`
+  - `/diffagent-tour explain the request lifecycle`
+  - `/diffagent-tour how are comments stored and retrieved?`
+  - `/diffagent-tour closures`
+  - `/diffagent-tour async/await patterns`
+  - `/diffagent-tour React hooks`
 
 ## CLI Reference
 
 ```
-diffity agent tour-start --topic "<text>" [--body "<text>"] --json
-diffity agent tour-step --tour <id> --file <path> --line <n> [--end-line <n>] --body "<text>" [--annotation "<text>"] --json
-diffity agent tour-done --tour <id> --json
-diffity list --json
+diffagent agent tour-start --topic "<text>" [--body "<text>"] --json
+diffagent agent tour-step --tour <id> --file <path> --line <n> [--end-line <n>] --body "<text>" [--annotation "<text>"] --json
+diffagent agent tour-done --tour <id> --json
+diffagent list --json
 ```
 
 ## Prerequisites
 
-1. Check that `diffity` is available: run `which diffity`. If not found, install it with `npm install -g diffity`.
-2. Ensure a tree instance is running: run `diffity list --json`.
-   - If no instance is running, start one: run `diffity tree --no-open` using the Bash tool with `run_in_background: true`, wait 2 seconds, then run `diffity list --json` to get the port.
+1. Check that `diffagent` is available: run `which diffagent`. If not found, install it with `npm install -g diffagent`.
+2. Ensure a tree instance is running: run `diffagent list --json`.
+   - If no instance is running, start one: run `diffagent tree --no-open` using the Bash tool with `run_in_background: true`, wait 2 seconds, then run `diffagent list --json` to get the port.
 
 ## Instructions
 
@@ -69,7 +69,7 @@ Before creating any tour steps, you must deeply understand the answer to the use
 - Include only locations that are essential to understanding — skip boilerplate
 - End at the final outcome (response sent, data persisted, UI rendered)
 - Each step should cover a single concept or code section
-- Include concrete examples where possible (e.g. "when the user runs `diffity main`, this becomes...")
+- Include concrete examples where possible (e.g. "when the user runs `diffagent main`, this becomes...")
 
 **Handling cross-module flows:** When the code path crosses into a library, utility module, or deeply nested abstraction, decide whether to follow it:
 - **Follow it** if the logic there is essential to understanding the answer (e.g. a custom middleware that transforms the request)
@@ -82,7 +82,7 @@ The tour UI has a dedicated explanation panel. The intro (from `tour-start --bod
 
 1. **Start the tour** with a short topic title and introductory body:
    ```
-   diffity agent tour-start --topic "<short title>" --body "<intro>" --json
+   diffagent agent tour-start --topic "<short title>" --body "<intro>" --json
    ```
 
    The `--topic` is displayed in the tour panel header — keep it to **3–6 words** (e.g. "Authentication Flow", "How Routing Works", "Comment System Architecture"). Do NOT use the user's full question as the topic.
@@ -103,7 +103,7 @@ The tour UI has a dedicated explanation panel. The intro (from `tour-start --bod
 
 2. **Add steps** in order. For each step:
    ```
-   diffity agent tour-step --tour <id> --file <path> --line <start> --end-line <end> --body "<narrative>" --annotation "<short label>" --json
+   diffagent agent tour-step --tour <id> --file <path> --line <start> --end-line <end> --body "<narrative>" --annotation "<short label>" --json
    ```
 
    **Writing step content:**
@@ -126,7 +126,7 @@ The tour UI has a dedicated explanation panel. The intro (from `tour-start --bod
    - Use `code` for function names, variables, refs, commands. When referencing a function, class, or code symbol that lives in a **known file and line**, make it a **goto link** so the reader can click to jump there. Syntax: `` [`symbolName`](goto:path/to/file.ts:startLine-endLine) `` or `` [`symbolName`](goto:path/to/file.ts:line) `` for a single line. These render as clickable inline code that navigates to the file and highlights the target lines. Example: `` [`handleDragEnd`](goto:src/KanbanContent.jsx:42-58) ``. Use plain backtick code for generic terms, CLI commands, or symbols you haven't located in the codebase.
    - Use **bold** for key concepts being introduced
    - Explain *why* the code exists and the design decisions behind it, not just what it does
-   - Use concrete examples: "When you run `diffity main`, this line calls `normalizeRef('main')` which computes `git merge-base main HEAD`"
+   - Use concrete examples: "When you run `diffagent main`, this line calls `normalizeRef('main')` which computes `git merge-base main HEAD`"
    - Use tables for mappings (input → output, ref → git command)
    - Use code blocks for data structures or command outputs
    - Connect each step to the bigger picture from the intro
@@ -180,12 +180,12 @@ The tour UI has a dedicated explanation panel. The intro (from `tour-start --bod
 
 4. **Finish the tour:**
    ```
-   diffity agent tour-done --tour <id> --json
+   diffagent agent tour-done --tour <id> --json
    ```
 
 ### Phase 3: Open in browser
 
-1. Get the running instance port from `diffity list --json`.
+1. Get the running instance port from `diffagent list --json`.
 2. Open the tour: `open "http://localhost:<port>/tour/<tour-id>"` (or the appropriate command for the user's OS).
 3. Tell the user the tour is ready:
 

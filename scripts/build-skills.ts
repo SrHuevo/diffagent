@@ -17,7 +17,7 @@ console.log(`Found ${skills.length} skills`);
 cleanDir(outputDir);
 const renderedSkills: string[] = [];
 for (const skill of skills) {
-  const content = renderSkill(skill, { binary: 'diffity' });
+  const content = renderSkill(skill, { binary: 'diffagent' });
   writeFile(join(outputDir, skill.name, 'SKILL.md'), content);
   renderedSkills.push(content);
 }
@@ -32,6 +32,6 @@ console.log(`Skills hash: ${skillsHash}`);
 
 cleanDir(globalClaudeSkillsDir);
 for (const skill of skills) {
-  claudeCode(skill, homeDir, { binary: 'diffity-dev', namePrefix: 'diffity-dev', slashPrefix: '/diffity-dev-', installHint: 'run `npm run dev` from the diffity repo root to link the CLI' });
+  claudeCode(skill, homeDir, { binary: 'diffagent-dev', namePrefix: 'diffagent-dev', slashPrefix: '/diffagent-dev-', installHint: 'run `npm run dev` from the diffagent repo root to link the CLI' });
 }
 console.log(`Synced ${skills.length} dev skills to ~/.claude/skills/`);

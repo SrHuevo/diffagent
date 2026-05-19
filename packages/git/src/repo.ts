@@ -43,12 +43,12 @@ export function getHeadHash(): string {
   return exec('git rev-parse HEAD');
 }
 
-export function getDiffityDirPath(): string {
-  return join(getRepoRoot(), '.diffity');
+export function getDiffagentDirPath(): string {
+  return join(getRepoRoot(), '.diffagent');
 }
 
-export function getDiffityDir(): string {
-  const dir = getDiffityDirPath();
+export function getDiffagentDir(): string {
+  const dir = getDiffagentDirPath();
   mkdirSync(dir, { recursive: true });
   return dir;
 }

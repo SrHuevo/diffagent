@@ -12,18 +12,18 @@
 # Install dependencies
 npm install
 
-# Start all watchers (run this in the diffity repo)
+# Start all watchers (run this in the diffagent repo)
 npm run dev
 ```
 
-This automatically creates the `diffity-dev` binary, builds skills, adds `.bin` to your PATH (in `~/.zshrc` or `~/.bashrc`), and starts five concurrent processes:
+This automatically creates the `diffagent-dev` binary, builds skills, adds `.bin` to your PATH (in `~/.zshrc` or `~/.bashrc`), and starts five concurrent processes:
 
 | Process | What it does |
 |---------|-------------|
-| **parser** | `tsc --watch` on `@diffity/parser` |
-| **git** | `tsc --watch` on `@diffity/git` |
+| **parser** | `tsc --watch` on `@diffagent/parser` |
+| **git** | `tsc --watch` on `@diffagent/git` |
 | **cli** | `tsc --watch` on the CLI package |
-| **ui** | `vite build --watch` on `@diffity/ui` |
+| **ui** | `vite build --watch` on `@diffagent/ui` |
 | **skills** | Rebuilds Claude skills on change |
 
 If this is your first time, source your shell profile to pick up the PATH change:
@@ -35,7 +35,7 @@ source ~/.zshrc  # or ~/.bashrc
 Then, in any git repository:
 
 ```bash
-diffity-dev
+diffagent-dev
 ```
 
 This opens a diff viewer for that repo's working tree changes.
@@ -48,11 +48,11 @@ The UI uses `vite build --watch` instead of `vite dev`. This is intentional — 
 
 ### Server changes (CLI, git, parser)
 
-`tsc --watch` recompiles TypeScript to `dist/` on save. The `diffity-dev` binary uses `node --watch-path=packages/cli/dist` which auto-restarts the Node process when any file in `dist/` changes. The port is persisted across restarts — the server retries the same port if it's briefly held by the old process.
+`tsc --watch` recompiles TypeScript to `dist/` on save. The `diffagent-dev` binary uses `node --watch-path=packages/cli/dist` which auto-restarts the Node process when any file in `dist/` changes. The port is persisted across restarts — the server retries the same port if it's briefly held by the old process.
 
-### How `diffity-dev` works
+### How `diffagent-dev` works
 
-`diffity-dev` is a shell script (not a symlink) created by `scripts/link-dev.ts`. It runs:
+`diffagent-dev` is a shell script (not a symlink) created by `scripts/link-dev.ts`. It runs:
 
 ```bash
 node --watch-path=<dist-dir> <cli-entry> --no-open "$@"
@@ -65,7 +65,7 @@ node --watch-path=<dist-dir> <cli-entry> --no-open "$@"
 ## Project Structure
 
 ```
-diffity/
+diffagent/
 ├── packages/
 │   ├── cli/          # CLI server and entry point
 │   │   ├── src/
@@ -77,24 +77,24 @@ diffity/
 │   └── ui/           # React frontend (Vite + Tailwind)
 ├── scripts/
 │   ├── dev.ts        # Starts all watchers concurrently
-│   ├── link-dev.ts   # Creates the diffity-dev shell script
+│   ├── link-dev.ts   # Creates the diffagent-dev shell script
 │   ├── build.ts      # Production build (all packages in order)
 │   └── build-skills.ts
 └── .bin/
-    └── diffity-dev   # Generated shell script for development
+    └── diffagent-dev   # Generated shell script for development
 ```
 
 ### Package dependencies
 
 ```
-@diffity/ui ──► @diffity/parser
+@diffagent/ui ──► @diffagent/parser
                      ▲
-@diffity/cli ────────┤
+@diffagent/cli ────────┤
                      │
-              @diffity/git
+              @diffagent/git
 ```
 
-The UI builds into `packages/cli/dist/ui/` so the CLI can serve it as static files. In production, everything ships as a single `diffity` npm package.
+The UI builds into `packages/cli/dist/ui/` so the CLI can serve it as static files. In production, everything ships as a single `diffagent` npm package.
 
 ## Build Commands
 
@@ -103,10 +103,10 @@ The UI builds into `packages/cli/dist/ui/` so the CLI can serve it as static fil
 npm run build
 
 # Build a single package
-npm run build -w @diffity/parser
-npm run build -w @diffity/git
-npm run build -w @diffity/ui
-npm run build -w diffity
+npm run build -w @diffagent/parser
+npm run build -w @diffagent/git
+npm run build -w @diffagent/ui
+npm run build -w diffagent
 ```
 
 ## Testing
@@ -116,29 +116,29 @@ npm run build -w diffity
 npm run test
 
 # Run tests for a specific package
-npm run test -w @diffity/parser
-npm run test -w @diffity/ui
+npm run test -w @diffagent/parser
+npm run test -w @diffagent/ui
 
 # Watch mode
-npm run test:watch -w @diffity/parser
-npm run test:watch -w @diffity/ui
+npm run test:watch -w @diffagent/parser
+npm run test:watch -w @diffagent/ui
 ```
 
 ## CLI Usage (for reference while developing)
 
 ```bash
-diffity-dev                        # Working tree changes
-diffity-dev HEAD~1                 # Last commit vs working tree
-diffity-dev HEAD~3                 # Last 3 commits vs working tree
-diffity-dev main..feature          # Compare branches
-diffity-dev --port 3000            # Custom port
+diffagent-dev                        # Working tree changes
+diffagent-dev HEAD~1                 # Last commit vs working tree
+diffagent-dev HEAD~3                 # Last 3 commits vs working tree
+diffagent-dev main..feature          # Compare branches
+diffagent-dev --port 3000            # Custom port
 ```
 
 ## Troubleshooting
 
 ### Port already in use
 
-If `diffity-dev` fails with `EADDRINUSE`, a previous process is still running:
+If `diffagent-dev` fails with `EADDRINUSE`, a previous process is still running:
 
 ```bash
 # Find and kill the process
@@ -150,7 +150,7 @@ The server retries the same port up to 30 times (15 seconds) on startup to handl
 
 ### Changes not showing up
 
-1. Make sure `npm run dev` is running in the diffity repo
+1. Make sure `npm run dev` is running in the diffagent repo
 2. Check that the relevant watcher (ui/cli/parser/git) isn't showing errors
 3. Refresh the browser — there's no HMR in this setup
-4. For server changes, wait for the `--watch` restart (you'll see the diffity banner re-print in the terminal where `diffity-dev` is running)
+4. For server changes, wait for the `--watch` restart (you'll see the diffagent banner re-print in the terminal where `diffagent-dev` is running)

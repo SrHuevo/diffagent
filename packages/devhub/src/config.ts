@@ -21,8 +21,8 @@ function getMainGitDir(): string {
 
 const mainGitDir = getMainGitDir()
 
-// DiffAgent repo root = the diffity monorepo this devhub lives in.
-// devhub/src/../../.. → diffity/
+// DiffAgent repo root = the diffagent monorepo this devhub lives in.
+// devhub/src/../../.. → diffagent/
 const diffagentRoot = resolve(DEVHUB_ROOT, '..', '..')
 
 export const config = {

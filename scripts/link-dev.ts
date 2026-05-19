@@ -8,7 +8,7 @@ const rootDir = resolve(__dirname, '..');
 const binDir = join(rootDir, '.bin');
 const cliEntry = join(rootDir, 'packages', 'cli', 'dist', 'index.js');
 const watchDir = join(rootDir, 'packages', 'cli', 'dist');
-const linkPath = join(binDir, 'diffity-dev');
+const linkPath = join(binDir, 'diffagent-dev');
 
 if (!existsSync(cliEntry)) {
   console.log('CLI not built yet, building packages first...');
@@ -34,7 +34,7 @@ writeFileSync(linkPath, script);
 chmodSync(linkPath, 0o755);
 
 const pathIncludes = process.env.PATH?.includes(binDir);
-console.log(`Created diffity-dev (auto-restarts on changes)`);
+console.log(`Created diffagent-dev (auto-restarts on changes)`);
 if (!pathIncludes) {
   const profileName = process.env.SHELL?.includes('zsh') ? '.zshrc' : '.bashrc';
   const profilePath = resolve(process.env.HOME || '~', profileName);
@@ -43,7 +43,7 @@ if (!pathIncludes) {
   if (existsSync(profilePath)) {
     const content = readFileSync(profilePath, 'utf-8');
     if (!content.includes(binDir)) {
-      writeFileSync(profilePath, content + `\n# diffity dev CLI\n${exportLine}\n`);
+      writeFileSync(profilePath, content + `\n# diffagent dev CLI\n${exportLine}\n`);
       console.log(`\nAdded .bin to PATH in ~/${profileName}`);
       console.log(`Run: source ~/${profileName}`);
     }

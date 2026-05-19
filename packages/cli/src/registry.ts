@@ -15,9 +15,9 @@ export interface RegistryEntry {
   version?: string;
 }
 
-const DIFFITY_DIR = join(homedir(), '.diffagent');
-const REGISTRY_PATH = join(DIFFITY_DIR, 'registry.json');
-const LOCK_PATH = join(DIFFITY_DIR, 'registry.lock');
+const DIFFAGENT_DIR = join(homedir(), '.diffagent');
+const REGISTRY_PATH = join(DIFFAGENT_DIR, 'registry.json');
+const LOCK_PATH = join(DIFFAGENT_DIR, 'registry.lock');
 const LOCK_STALE_MS = 5000;
 const LOCK_TIMEOUT_MS = 3000;
 const BASE_PORT = 5391;
@@ -33,7 +33,7 @@ function isProcessAlive(pid: number): boolean {
 }
 
 function acquireLock(): void {
-  mkdirSync(DIFFITY_DIR, { recursive: true });
+  mkdirSync(DIFFAGENT_DIR, { recursive: true });
 
   const start = Date.now();
   while (true) {
@@ -96,7 +96,7 @@ function readRegistryRaw(): RegistryEntry[] {
 }
 
 function writeRegistryRaw(entries: RegistryEntry[]): void {
-  mkdirSync(DIFFITY_DIR, { recursive: true });
+  mkdirSync(DIFFAGENT_DIR, { recursive: true });
   writeFileSync(REGISTRY_PATH, JSON.stringify(entries, null, 2));
 }
 

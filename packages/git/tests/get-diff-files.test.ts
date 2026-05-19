@@ -17,7 +17,7 @@ function writeFile(name: string, content: string) {
 
 beforeAll(() => {
   origCwd = process.cwd();
-  repoDir = mkdtempSync(join(tmpdir(), 'diffity-test-'));
+  repoDir = mkdtempSync(join(tmpdir(), 'diffagent-test-'));
 
   git('init -b main');
   git('config user.email "test@test.com"');

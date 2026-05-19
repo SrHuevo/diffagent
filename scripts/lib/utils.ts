@@ -44,15 +44,15 @@ export function readSkills(sourceDir: string): Skill[] {
 }
 
 export function renderSkill(skill: Skill, { binary, namePrefix, slashPrefix, installHint }: TransformOptions): string {
-  const slash = slashPrefix ?? '/diffity-';
-  const hint = installHint ?? 'install it with `npm install -g diffity`';
+  const slash = slashPrefix ?? '/diffagent-';
+  const hint = installHint ?? 'install it with `npm install -g diffagent`';
   const body = skill.content
     .replaceAll('{{binary}}', binary)
     .replaceAll('{{slash}}', slash)
     .replaceAll('{{install_hint}}', hint);
   const data = { ...skill.data };
   if (namePrefix) {
-    data.name = data.name.replace('diffity-', `${namePrefix}-`);
+    data.name = data.name.replace('diffagent-', `${namePrefix}-`);
   }
   return matter.stringify(body, data);
 }

@@ -1,22 +1,22 @@
 ---
-name: diffity-tour
+name: diffagent-tour
 description: Create a guided code tour that walks through the codebase to answer a question or explain a feature. Opens in the browser with step-by-step navigation and highlighted code.
 user-invocable: true
 ---
 
-# Diffity Tour Skill
+# Diffagent Tour Skill
 
 You are creating a guided code tour — a narrated, step-by-step walkthrough of the codebase that answers the user's question or explains how a feature works. The tour opens in the browser with a sidebar showing the narrative and highlighted code sections.
 
 ## Arguments
 
 - `question` (required): The user's question, topic, or concept. Examples:
-  - `/diffity-tour how does authentication work?`
-  - `/diffity-tour explain the request lifecycle`
-  - `/diffity-tour how are comments stored and retrieved?`
-  - `/diffity-tour closures`
-  - `/diffity-tour async/await patterns`
-  - `/diffity-tour React hooks`
+  - `/diffagent-tour how does authentication work?`
+  - `/diffagent-tour explain the request lifecycle`
+  - `/diffagent-tour how are comments stored and retrieved?`
+  - `/diffagent-tour closures`
+  - `/diffagent-tour async/await patterns`
+  - `/diffagent-tour React hooks`
 
 ## CLI Reference
 
@@ -66,7 +66,7 @@ Before creating any tour steps, you must deeply understand the answer to the use
 - Include only locations that are essential to understanding — skip boilerplate
 - End at the final outcome (response sent, data persisted, UI rendered)
 - Each step should cover a single concept or code section
-- Include concrete examples where possible (e.g. "when the user runs `diffity main`, this becomes...")
+- Include concrete examples where possible (e.g. "when the user runs `diffagent main`, this becomes...")
 
 **Handling cross-module flows:** When the code path crosses into a library, utility module, or deeply nested abstraction, decide whether to follow it:
 - **Follow it** if the logic there is essential to understanding the answer (e.g. a custom middleware that transforms the request)
@@ -123,7 +123,7 @@ The tour UI has a dedicated explanation panel. The intro (from `tour-start --bod
    - Use `code` for function names, variables, refs, commands. When referencing a function, class, or code symbol that lives in a **known file and line**, make it a **goto link** so the reader can click to jump there. Syntax: `` [`symbolName`](goto:path/to/file.ts:startLine-endLine) `` or `` [`symbolName`](goto:path/to/file.ts:line) `` for a single line. These render as clickable inline code that navigates to the file and highlights the target lines. Example: `` [`handleDragEnd`](goto:src/KanbanContent.jsx:42-58) ``. Use plain backtick code for generic terms, CLI commands, or symbols you haven't located in the codebase.
    - Use **bold** for key concepts being introduced
    - Explain *why* the code exists and the design decisions behind it, not just what it does
-   - Use concrete examples: "When you run `diffity main`, this line calls `normalizeRef('main')` which computes `git merge-base main HEAD`"
+   - Use concrete examples: "When you run `diffagent main`, this line calls `normalizeRef('main')` which computes `git merge-base main HEAD`"
    - Use tables for mappings (input → output, ref → git command)
    - Use code blocks for data structures or command outputs
    - Connect each step to the bigger picture from the intro
